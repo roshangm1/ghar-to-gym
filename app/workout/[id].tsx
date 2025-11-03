@@ -142,13 +142,12 @@ const ExerciseMeta = ({ duration, caloriesBurn, totalExercises }: { duration: nu
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { logWorkout } = useApp();
+  const { logWorkout, isAuthenticated } = useApp();
   const colors = useThemeColor();
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(
     new Set()
   );
   
-
   // Fetch workout from InstantDB
   const { isLoading, error, data } = useWorkout(id as string);
   const workout = data?.workout;
@@ -193,6 +192,21 @@ export default function WorkoutDetailScreen() {
   };
 
   const handleCompleteWorkout = async () => {
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Login Required',
+        'You need to be logged in to complete workouts and track your progress.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Login',
+            onPress: () => router.push('/auth'),
+          },
+        ]
+      );
+      return;
+    }
+
     const allCompleted = workout.exercises.every((ex) =>
       completedExercises.has(ex.id)
     );
@@ -206,25 +220,33 @@ export default function WorkoutDetailScreen() {
       return;
     }
 
-    await logWorkout({
-      workoutId: workout.id,
-      date: new Date().toISOString(),
-      duration: workout.duration,
-      caloriesBurned: workout.caloriesBurn,
-      energyBefore: 7,
-      energyAfter: 8,
-    });
+    try {
+      await logWorkout({
+        workoutId: workout.id,
+        date: new Date().toISOString(),
+        duration: workout.duration,
+        caloriesBurned: workout.caloriesBurn,
+        energyBefore: 7,
+        energyAfter: 8,
+      });
 
-    Alert.alert(
-      'Workout Complete! 🎉',
-      `Great job! You earned 50 points and burned ${workout.caloriesBurn} calories!`,
-      [
-        {
-          text: 'Done',
-          onPress: () => router.back(),
-        },
-      ]
-    );
+      Alert.alert(
+        'Workout Complete! 🎉',
+        `Great job! You earned 50 points and burned ${workout.caloriesBurn} calories!`,
+        [
+          {
+            text: 'Done',
+            onPress: () => router.back(),
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to complete workout. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (

@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useNutrition } from '@/lib/useNutrition';
@@ -24,7 +25,8 @@ const CATEGORIES = [
 
 export default function TiffinScreen() {
   const colors = useThemeColor();
-  const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
+  const styles = createStyles(colors, insets);
   const [selectedCategory, setSelectedCategory] = useState<
     'all' | NutritionTip['category']
   >('all');
@@ -40,10 +42,14 @@ export default function TiffinScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+      >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Tiffin Box</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={styles.headerSubtitle}>Nutrition Guide</Text>
+          <Text style={styles.headerTitle}>Tiffin Box 🍱</Text>
+          <Text style={styles.headerDescription}>
             Healthy Nepali eating for fitness warriors
           </Text>
         </View>
@@ -164,7 +170,7 @@ export default function TiffinScreen() {
 
                   <View style={styles.tipsSection}>
                     <Text style={styles.tipsTitle}>Pro Tips:</Text>
-                    {tip.tips.map((tipText, index) => (
+                    {tip.tips.map((tipText: string, index: number) => (
                       <View key={index} style={styles.tipItem}>
                         <Text style={styles.tipBullet}>✓</Text>
                         <Text style={styles.tipText}>{tipText}</Text>
@@ -181,32 +187,40 @@ export default function TiffinScreen() {
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnType<typeof useSafeAreaInsets>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
   },
   header: {
     backgroundColor: colors.background,
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    color: colors.text,
-    marginBottom: 4,
+    paddingHorizontal: 24,
+    paddingTop: insets.top,
+    paddingBottom: 24,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 20,
+    fontWeight: '500' as const,
     color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontSize: 36,
+    fontWeight: '800' as const,
+    color: colors.text,
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  headerDescription: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '400' as const,
   },
   categoriesSection: {
     marginTop: 16,
   },
   categoriesContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     gap: 8,
   },
   categoryChip: {
@@ -233,7 +247,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     color: colors.background,
   },
   tipsContainer: {
-    padding: 20,
+    padding: 12,
     gap: 20,
   },
   tipCard: {

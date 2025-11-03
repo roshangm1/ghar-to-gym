@@ -2,6 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { useEffect, useState } from 'react';
 import { UserProfile, WorkoutLog, AchievementPreferences, SocialPost } from '@/types';
+import { db } from '@/lib/instant';
+import { useAuth } from '@/lib/useAuth';
+import { useUserProfile, useUserWorkoutLogs, useUserAchievements, logWorkoutToDB, updateCustomMetric as updateCustomMetricDB } from '@/lib/useUserData';
 
 const DEFAULT_PROFILE: UserProfile = {
   id: 'user1',
@@ -59,48 +62,83 @@ const DEFAULT_PREFERENCES: AchievementPreferences = {
 };
 
 export const [AppProvider, useApp] = createContextHook(() => {
-  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const { isAuthenticated } = useAuth();
+  const { user: authUser } = db.useAuth();
+  const { profile: dbProfile, userId: dbUserId, isLoading: profileLoading } = useUserProfile();
+  const { logs: dbLogs, isLoading: logsLoading } = useUserWorkoutLogs();
+  const { achievements: dbAchievements, isLoading: achievementsLoading } = useUserAchievements();
+  
+  const [localProfile, setLocalProfile] = useState<UserProfile | null>(null);
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([]);
   const [preferences, setPreferences] = useState<AchievementPreferences>(DEFAULT_PREFERENCES);
   const [socialFeed, setSocialFeed] = useState<SocialPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingLocal, setIsLoadingLocal] = useState(true);
 
+  // Load local data only once on mount (for non-authenticated users)
   useEffect(() => {
+    const loadData = async () => {
+      if (!isAuthenticated) {
+        try {
+          const [storedProfile, storedLogs, storedPreferences, storedFeed] = await Promise.all([
+            AsyncStorage.getItem('profile'),
+            AsyncStorage.getItem('workoutLogs'),
+            AsyncStorage.getItem('preferences'),
+            AsyncStorage.getItem('socialFeed'),
+          ]);
+
+          if (storedProfile) {
+            setLocalProfile(JSON.parse(storedProfile));
+          }
+          if (storedLogs) {
+            setWorkoutLogs(JSON.parse(storedLogs));
+          }
+          if (storedPreferences) {
+            setPreferences(JSON.parse(storedPreferences));
+          }
+          if (storedFeed) {
+            setSocialFeed(JSON.parse(storedFeed));
+          }
+        } catch (error) {
+          console.error('Error loading data:', error);
+        } finally {
+          setIsLoadingLocal(false);
+        }
+      } else {
+        setIsLoadingLocal(false);
+      }
+    };
+
     loadData();
-  }, []);
+  }, [isAuthenticated]);
 
-  const loadData = async () => {
-    try {
-      const [storedProfile, storedLogs, storedPreferences, storedFeed] = await Promise.all([
-        AsyncStorage.getItem('profile'),
-        AsyncStorage.getItem('workoutLogs'),
-        AsyncStorage.getItem('preferences'),
-        AsyncStorage.getItem('socialFeed'),
-      ]);
+  // Use database profile if authenticated, otherwise use local profile
+  // For authenticated users, stats (totalWorkouts, workoutStreak, points) are fetched from InstantDB
+  // via useUserProfile hook which queries the userProfiles table
+  // Workout logs are tracked separately in workoutLogs table
+  // Stats are maintained in userProfiles table for performance and updated when workouts are logged
+  const profile: UserProfile = isAuthenticated && dbProfile
+    ? {
+        ...dbProfile,
+        achievements: dbAchievements || [],
+      }
+    : localProfile || DEFAULT_PROFILE;
 
-      if (storedProfile) {
-        setProfile(JSON.parse(storedProfile));
-      }
-      if (storedLogs) {
-        setWorkoutLogs(JSON.parse(storedLogs));
-      }
-      if (storedPreferences) {
-        setPreferences(JSON.parse(storedPreferences));
-      }
-      if (storedFeed) {
-        setSocialFeed(JSON.parse(storedFeed));
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use database logs if authenticated, otherwise use local logs
+  const finalWorkoutLogs: WorkoutLog[] = isAuthenticated ? (dbLogs || []) : workoutLogs;
+
+  const isLoading = isAuthenticated
+    ? profileLoading || logsLoading || achievementsLoading
+    : isLoadingLocal;
 
   const saveProfile = async (newProfile: UserProfile) => {
     try {
+      if (isAuthenticated) {
+        // For authenticated users, profile is managed by InstantDB
+        // This is just for backward compatibility
+        return;
+      }
       await AsyncStorage.setItem('profile', JSON.stringify(newProfile));
-      setProfile(newProfile);
+      setLocalProfile(newProfile);
     } catch (error) {
       console.error('Error saving profile:', error);
     }
@@ -110,6 +148,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
     metric: 'energyLevel' | 'sleepQuality',
     value: number
   ) => {
+    if (isAuthenticated && dbUserId) {
+      await updateCustomMetricDB(dbUserId, metric, value);
+      // Profile will update via useUserProfile hook
+      return;
+    }
+    // Fallback for non-authenticated users
     const updatedProfile = {
       ...profile,
       customMetrics: {
@@ -157,58 +201,41 @@ export const [AppProvider, useApp] = createContextHook(() => {
   };
 
   const logWorkout = async (log: Omit<WorkoutLog, 'id'>) => {
+    if (!isAuthenticated || !authUser) {
+      throw new Error('You must be logged in to complete workouts. Please sign in to track your progress.');
+    }
+
+    if (!dbUserId) {
+      throw new Error('User profile not found. Please try logging out and back in.');
+    }
+
     try {
-      const newLog: WorkoutLog = {
-        ...log,
-        id: Date.now().toString(),
-      };
-
-      const updatedLogs = [...workoutLogs, newLog];
-      await AsyncStorage.setItem('workoutLogs', JSON.stringify(updatedLogs));
-      setWorkoutLogs(updatedLogs);
-
-      const today = new Date().toISOString().split('T')[0];
-      const lastWorkout = profile.customMetrics.lastWorkoutDate?.split('T')[0];
-      const isNewDay = today !== lastWorkout;
-
-      if (isNewDay) {
-        const newStreak =
-          lastWorkout &&
-          new Date(today).getTime() - new Date(lastWorkout).getTime() ===
-            24 * 60 * 60 * 1000
-            ? profile.workoutStreak + 1
-            : 1;
-
-        const updatedProfile: UserProfile = {
-          ...profile,
-          totalWorkouts: profile.totalWorkouts + 1,
-          workoutStreak: newStreak,
-          points: profile.points + 50,
-          customMetrics: {
-            ...profile.customMetrics,
-            lastWorkoutDate: new Date().toISOString(),
+      // Log workout to InstantDB
+      // This will automatically update the profile stats (totalWorkouts, streak, points, etc.)
+      // Workout logs are tracked separately in workoutLogs table
+      // Stats (totalWorkouts, streak, points) are maintained in userProfiles table for performance
+      console.log('Logging workout for user:', dbUserId);
+      await logWorkoutToDB(dbUserId, log);
+      
+      // Profile updates automatically via reactive database hooks (useUserProfile)
+      // Just handle social post if needed
+      if (preferences.autoPost && preferences.shareWorkouts && dbProfile) {
+        await addSocialPost({
+          userId: dbProfile.id,
+          userName: dbProfile.name,
+          userAvatar: dbProfile.avatar,
+          type: 'workout',
+          content: `Just completed a workout! 💪`,
+          likes: 0,
+          comments: 0,
+          data: {
+            workoutId: log.workoutId,
           },
-        };
-
-        await saveProfile(updatedProfile);
-
-        if (preferences.autoPost && preferences.shareWorkouts) {
-          await addSocialPost({
-            userId: profile.id,
-            userName: profile.name,
-            userAvatar: profile.avatar,
-            type: 'workout',
-            content: `Just completed a workout! 💪`,
-            likes: 0,
-            comments: 0,
-            data: {
-              workoutId: log.workoutId,
-            },
-          });
-        }
+        });
       }
     } catch (error) {
       console.error('Error logging workout:', error);
+      throw error;
     }
   };
 
@@ -248,10 +275,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   return {
     profile,
-    workoutLogs,
+    workoutLogs: finalWorkoutLogs,
     preferences,
     socialFeed,
     isLoading,
+    isAuthenticated,
     saveProfile,
     updateCustomMetric,
     updateWeight,

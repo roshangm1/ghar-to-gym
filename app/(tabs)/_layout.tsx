@@ -13,15 +13,21 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.tabIconDefault,
-        headerShown: true,
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
+          borderTopWidth: 0.5,
+          elevation: 0,
+          shadowOpacity: 0,
+          height: 88,
+          paddingTop: 8,
+          paddingBottom: 32,
         },
-        headerShadowVisible: false,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: "600" as const,
+          marginTop: 4,
         },
       }}
     >
@@ -29,7 +35,6 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          headerTitle: "Ghar-to-Gym",
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
@@ -37,15 +42,13 @@ export default function TabLayout() {
         name="community"
         options={{
           title: "Sangha",
-          headerTitle: "Community",
           tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="tiffin"
         options={{
-          title: "Tiffin Box",
-          headerTitle: "Nutrition Guide",
+          title: "Tiffin",
           tabBarIcon: ({ color, size }) => <UtensilsCrossed color={color} size={size} />,
         }}
       />
@@ -53,7 +56,6 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          headerTitle: "My Progress",
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />

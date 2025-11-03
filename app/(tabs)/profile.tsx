@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Target, Trophy, Battery, Moon, Scale } from 'lucide-react-native';
+import { Target, Trophy, Battery, Moon, Scale, LogIn, LogOut } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   View,
@@ -7,37 +7,168 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/lib/useAuth';
 import { SeedButton } from '@/lib/SeedButton';
 
 export default function ProfileScreen() {
-  const { profile, updateCustomMetric } = useApp();
+  const { profile, updateCustomMetric, isAuthenticated } = useApp();
+  const { logout } = useAuth();
   const colors = useThemeColor();
-  const styles = createStyles(colors);
-  const [energyLevel, setEnergyLevel] = useState(profile.customMetrics.energyLevel);
-  const [sleepQuality, setSleepQuality] = useState(profile.customMetrics.sleepQuality);
+  const insets = useSafeAreaInsets();
+  const styles = createStyles(colors, insets);
+
+  const { energyLevel, sleepQuality } = profile.customMetrics;
 
   const handleEnergyUpdate = (value: number) => {
-    setEnergyLevel(value);
     updateCustomMetric('energyLevel', value);
   };
 
   const handleSleepUpdate = (value: number) => {
-    setSleepQuality(value);
     updateCustomMetric('sleepQuality', value);
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out? You can always sign back in to continue tracking your progress.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error) {
+              console.error('Error logging out:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom }]}
+        >
+          <View style={styles.profileHeader}>
+            <Text style={styles.headerSubtitle}>Your Profile</Text>
+            <Text style={styles.profileName}>Guest User</Text>
+            <Text style={styles.profileEmail}>Sign in to track your progress</Text>
+          </View>
+
+          <View style={styles.loginSection}>
+            <View style={styles.loginCard}>
+              <View style={styles.loginIcon}>
+                <LogIn size={32} color={colors.primary} />
+              </View>
+              <Text style={styles.loginTitle}>Sign In to Unlock</Text>
+              <Text style={styles.loginDescription}>
+                Log in or create an account to track your workouts, build streaks, unlock achievements, and sync your progress across devices.
+              </Text>
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={() => router.push('/auth')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loginButtonText}>Sign In / Register</Text>
+              </TouchableOpacity>
+              <Text style={styles.loginSubtext}>
+                We&apos;ll send you a magic code to your email
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.guestInfoSection}>
+            <Text style={styles.guestInfoTitle}>What you can do as a guest:</Text>
+            <View style={styles.guestInfoList}>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>✓</Text>
+                <Text style={styles.guestInfoText}>Browse all workouts</Text>
+              </View>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>✓</Text>
+                <Text style={styles.guestInfoText}>View nutrition tips</Text>
+              </View>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>✓</Text>
+                <Text style={styles.guestInfoText}>Explore the community</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.guestInfoSection}>
+            <Text style={styles.guestInfoTitle}>When you sign in:</Text>
+            <View style={styles.guestInfoList}>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>🎯</Text>
+                <Text style={styles.guestInfoText}>Track workout completions</Text>
+              </View>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>🔥</Text>
+                <Text style={styles.guestInfoText}>Build and maintain streaks</Text>
+              </View>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>🏆</Text>
+                <Text style={styles.guestInfoText}>Unlock achievements</Text>
+              </View>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>📊</Text>
+                <Text style={styles.guestInfoText}>Track your progress over time</Text>
+              </View>
+              <View style={styles.guestInfoItem}>
+                <Text style={styles.guestInfoBullet}>💾</Text>
+                <Text style={styles.guestInfoText}>Sync across all devices</Text>
+              </View>
+            </View>
+          </View>
+
+          <SeedButton />
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
+      >
         <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
+          <Text style={styles.headerSubtitle}>Your Profile</Text>
+          <View style={styles.profileNameContainer}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{profile.name}</Text>
+              <Text style={styles.profileEmail}>{profile.email}</Text>
+            </View>
           </View>
-          <Text style={styles.profileName}>{profile.name}</Text>
-          <Text style={styles.profileEmail}>{profile.email}</Text>
+          <View style={styles.profileActions}>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              activeOpacity={0.8}
+            >
+              <LogOut size={18} color={colors.textSecondary} />
+              <Text style={styles.logoutButtonText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
           <SeedButton />
         </View>
 
@@ -240,45 +371,79 @@ export default function ProfileScreen() {
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnType<typeof useSafeAreaInsets>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
   },
   profileHeader: {
     backgroundColor: colors.background,
+    paddingHorizontal: 24,
+    paddingTop: insets.top,
+    paddingBottom: 24,
+  },
+  headerSubtitle: {
+    fontSize: 20,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  profileNameContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    gap: 16,
+    marginBottom: 16,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileActions: {
+    marginTop: 16,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  logoutButtonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: colors.textSecondary,
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700' as const,
     color: colors.background,
   },
   profileName: {
-    fontSize: 24,
-    fontWeight: '700' as const,
+    fontSize: 28,
+    fontWeight: '800' as const,
     color: colors.text,
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   profileEmail: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
   },
   statsGrid: {
     flexDirection: 'row',
-    padding: 20,
+    padding: 12,
     gap: 12,
   },
   statBox: {
@@ -303,7 +468,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     textAlign: 'center',
   },
   section: {
-    padding: 20,
+    padding: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -452,7 +617,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
   },
   weightCard: {
     backgroundColor: colors.background,
-    padding: 20,
+    padding: 12,
     borderRadius: 12,
   },
   weightContent: {
@@ -513,5 +678,91 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  loginSection: {
+    padding: 12,
+  },
+  loginCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    gap: 16,
+  },
+  loginIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginTitle: {
+    fontSize: 24,
+    fontWeight: '800' as const,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  loginDescription: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  loginButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: colors.background,
+  },
+  loginSubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  guestInfoSection: {
+    padding: 12,
+    marginTop: 8,
+  },
+  guestInfoTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: colors.text,
+    marginBottom: 16,
+  },
+  guestInfoList: {
+    gap: 12,
+  },
+  guestInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 12,
+  },
+  guestInfoBullet: {
+    fontSize: 18,
+    width: 24,
+    textAlign: 'center',
+  },
+  guestInfoText: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: '500' as const,
   },
 });

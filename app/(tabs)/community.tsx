@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '@/contexts/AppContext';
 import { CHALLENGES, LEADERBOARD } from '@/mocks/challenges';
 import { SOCIAL_FEED } from '@/mocks/socialFeed';
@@ -16,7 +17,8 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export default function CommunityScreen() {
   const { profile, socialFeed } = useApp();
   const colors = useThemeColor();
-  const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
+  const styles = createStyles(colors, insets);
 
   const combined = [...socialFeed, ...SOCIAL_FEED];
   const allPosts = combined.sort(
@@ -53,10 +55,14 @@ export default function CommunityScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+      >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Community Feed</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={styles.headerSubtitle}>Sangha</Text>
+          <Text style={styles.headerTitle}>Community</Text>
+          <Text style={styles.headerDescription}>
             See what the Sangha is up to! 🙏
           </Text>
         </View>
@@ -179,30 +185,38 @@ export default function CommunityScreen() {
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnType<typeof useSafeAreaInsets>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
   },
   header: {
     backgroundColor: colors.background,
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    color: colors.text,
-    marginBottom: 4,
+    paddingHorizontal: 24,
+    paddingTop: insets.top,
+    paddingBottom: 24,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 20,
+    fontWeight: '500' as const,
     color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontSize: 36,
+    fontWeight: '800' as const,
+    color: colors.text,
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  headerDescription: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '400' as const,
   },
   statsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     marginTop: 16,
     gap: 12,
   },
@@ -225,7 +239,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
   },
   section: {
     marginTop: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
   },
   postCard: {
     backgroundColor: colors.background,

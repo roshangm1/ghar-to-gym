@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '@/contexts/AppContext';
 import { useWorkouts } from '@/lib/useWorkouts';
 import { WorkoutCategory } from '@/types';
@@ -26,14 +27,14 @@ const CATEGORIES: { id: WorkoutCategory | 'all'; label: string; emoji: string }[
 export default function HomeScreen() {
   const { profile, suggestionEngine } = useApp();
   const colors = useThemeColor();
+  const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory | 'all'>('all');
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, insets);
   
   // Fetch workouts from InstantDB
   const { isLoading, error, data } = useWorkouts();
   const workouts = data?.workouts || [];
 
-  console.log('workouts', workouts);
   const filteredWorkouts =
     selectedCategory === 'all'
       ? workouts
@@ -47,17 +48,18 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom }]}
       >
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Namaste, {profile.name}! 🙏</Text>
-            <Text style={styles.subtitle}>Let&apos;s get stronger together</Text>
+          <View style={styles.headerTop}>
+            <View style={styles.streakBadge}>
+              <Flame color={colors.accent} size={18} fill={colors.accent} />
+              <Text style={styles.streakText}>{profile.workoutStreak} day streak</Text>
+            </View>
           </View>
-          <View style={styles.streakBadge}>
-            <Flame color={colors.accent} size={20} />
-            <Text style={styles.streakText}>{profile.workoutStreak}</Text>
-          </View>
+          <Text style={styles.greeting}>Namaste,</Text>
+          <Text style={styles.nameText}>{profile.name}! 🙏</Text>
+          <Text style={styles.subtitle}>Let&apos;s get stronger together</Text>
         </View>
 
         <View style={styles.suggestionCard}>
@@ -212,7 +214,7 @@ export default function HomeScreen() {
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnType<typeof useSafeAreaInsets>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
@@ -221,39 +223,55 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     paddingBottom: 20,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: insets.top,
+    paddingBottom: 24,
     backgroundColor: colors.background,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   greeting: {
-    fontSize: 24,
-    fontWeight: '700' as const,
+    fontSize: 20,
+    fontWeight: '500' as const,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  nameText: {
+    fontSize: 36,
+    fontWeight: '800' as const,
     color: colors.text,
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: colors.textSecondary,
-    marginTop: 4,
+    fontWeight: '400' as const,
+    marginTop: 2,
   },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
-    paddingHorizontal: 12,
+    backgroundColor: colors.accent + '15',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
+    borderRadius: 24,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.accent + '25',
   },
   streakText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700' as const,
-    color: colors.text,
+    color: colors.accent,
   },
   suggestionCard: {
     backgroundColor: colors.primary,
-    marginHorizontal: 20,
+    marginHorizontal: 12,
     marginTop: 16,
     padding: 16,
     borderRadius: 12,
@@ -269,7 +287,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.secondary,
-    marginHorizontal: 20,
+    marginHorizontal: 12,
     marginTop: 12,
     padding: 16,
     borderRadius: 16,
@@ -306,7 +324,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
   },
   statsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     marginTop: 16,
     gap: 12,
   },
@@ -338,11 +356,11 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     fontSize: 20,
     fontWeight: '700' as const,
     color: colors.text,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     marginBottom: 12,
   },
   categoriesContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     gap: 8,
   },
   categoryChip: {
@@ -372,7 +390,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     color: colors.background,
   },
   workoutsGrid: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     gap: 16,
   },
   workoutCard: {
@@ -444,7 +462,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
   },
   errorContainer: {
     paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -463,7 +481,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
   },
   emptyContainer: {
     paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

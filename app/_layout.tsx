@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useColorScheme } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProvider } from "@/contexts/AppContext";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
@@ -90,6 +91,13 @@ function RootLayoutNav() {
             headerBackButtonDisplayMode: "minimal",
           }}
         />
+        <Stack.Screen 
+          name="auth"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
       </Stack>
       </KeyboardProvider>
       </ThemeProvider>
@@ -103,11 +111,13 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <RootLayoutNav />
-        </GestureHandlerRootView>
-      </AppProvider>
+      <SafeAreaProvider>
+        <AppProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <RootLayoutNav />
+          </GestureHandlerRootView>
+        </AppProvider>
+      </SafeAreaProvider>
     </QueryClientProvider>
   );
 }
