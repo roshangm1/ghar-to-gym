@@ -103,6 +103,19 @@ const schema = i.schema({
       data: i.json().optional(), // Additional post data
       createdAt: i.number(),
     }),
+    // User workout instances - tracks individual user progress through a workout
+    // Multiple instances allowed per user per workout (one per day/session)
+    userWorkouts: i.entity({
+      userId: i.string(), // Reference to users.id
+      workoutId: i.string(), // Reference to workouts.id
+      status: i.string(), // 'not_started' | 'in_progress' | 'completed'
+      completedExercises: i.json(), // Array of exercise IDs that are completed
+      workoutDate: i.string(), // ISO date string (YYYY-MM-DD) to identify daily sessions
+      startedAt: i.number().optional(), // Timestamp when workout was started
+      completedAt: i.number().optional(), // Timestamp when workout was completed
+      createdAt: i.number(),
+      updatedAt: i.number(),
+    }),
   },
   links: {
     workoutExercises: {
@@ -155,6 +168,19 @@ const schema = i.schema({
       },
       reverse: {
         on: 'socialPosts',
+        has: 'one',
+        label: 'user',
+      },
+    },
+    // Link users to userWorkouts
+    userUserWorkouts: {
+      forward: {
+        on: 'users',
+        has: 'many',
+        label: 'userWorkouts',
+      },
+      reverse: {
+        on: 'userWorkouts',
         has: 'one',
         label: 'user',
       },

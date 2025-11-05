@@ -342,3 +342,276 @@ export async function updateCustomMetric(
   }
 }
 
+/**
+ * Get today's date as YYYY-MM-DD string
+ */
+function getTodayDateString(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * Hook to get a user's workout instance for today's session
+ */
+export function useUserWorkoutInstance(userId: string | null, workoutId: string) {
+  const todayDate = getTodayDateString();
+  
+  const { data, isLoading } = db.useQuery(
+    userId && workoutId
+      ? {
+          userWorkouts: {
+            $: {
+              where: {
+                userId: userId as any,
+                workoutId: workoutId as any,
+                workoutDate: todayDate as any,
+              },
+            },
+          },
+        }
+      : {}
+  );
+
+  const instances = data?.userWorkouts || [];
+  
+  // Prioritize in_progress instances, then most recent
+  let instance = null;
+  if (instances.length > 0) {
+    // First, try to find an in_progress instance
+    const inProgressInstance = instances.find((inst: any) => inst.status === 'in_progress');
+    if (inProgressInstance) {
+      instance = inProgressInstance;
+    } else {
+      // If no in_progress, get the most recent instance (by createdAt or updatedAt)
+      instance = instances.reduce((latest: any, current: any) => {
+        const latestTime = latest.updatedAt || latest.createdAt || 0;
+        const currentTime = current.updatedAt || current.createdAt || 0;
+        return currentTime > latestTime ? current : latest;
+      });
+    }
+  }
+
+  return {
+    instance,
+    isLoading,
+    status: instance?.status || 'not_started',
+    completedExercises: (instance?.completedExercises || []) as string[],
+    workoutDate: instance?.workoutDate || todayDate,
+  };
+}
+
+/**
+ * Hook to get all active (in_progress) workout instances for today
+ */
+export function useActiveWorkouts(userId: string | null) {
+  const todayDate = getTodayDateString();
+  
+  const { data, isLoading } = db.useQuery(
+    userId
+      ? {
+          userWorkouts: {
+            $: {
+              where: {
+                userId: userId as any,
+                workoutDate: todayDate as any,
+                status: 'in_progress' as any,
+              },
+            },
+          },
+        }
+      : {}
+  );
+
+  const instances = data?.userWorkouts || [];
+  
+  // Extract workout IDs and completion info
+  const activeWorkouts = instances.map((instance: any) => ({
+    instanceId: instance.id,
+    workoutId: instance.workoutId,
+    completedExercises: (instance.completedExercises || []) as string[],
+    startedAt: instance.startedAt,
+  }));
+
+  return {
+    activeWorkouts,
+    isLoading,
+  };
+}
+
+/**
+ * Start a workout for a user (create new daily instance or resume today's instance)
+ */
+export async function startUserWorkout(
+  userId: string,
+  workoutId: string
+): Promise<string> {
+  try {
+    const todayDate = getTodayDateString();
+    
+    // Check if there's an instance for today
+    const { data } = await db.queryOnce({
+      userWorkouts: {
+        $: {
+          where: {
+            userId: userId as any,
+            workoutId: workoutId as any,
+            workoutDate: todayDate as any,
+          },
+        },
+      },
+    });
+
+    const instances = data?.userWorkouts || [];
+    
+    // Find existing in_progress instance
+    const inProgressInstance = instances.find((inst: any) => inst.status === 'in_progress');
+    
+    if (inProgressInstance) {
+      // Resume existing in-progress instance (ensure it's up to date)
+      await db.transact([
+        db.tx.userWorkouts[inProgressInstance.id].update({
+          status: 'in_progress',
+          startedAt: inProgressInstance.startedAt || Date.now(),
+          updatedAt: Date.now(),
+        }),
+      ]);
+      return inProgressInstance.id;
+    }
+    
+    // If no in_progress instance, create a new one
+    const instanceId = id();
+    await db.transact([
+      db.tx.userWorkouts[instanceId].update({
+        userId,
+        workoutId,
+        status: 'in_progress',
+        completedExercises: [],
+        workoutDate: todayDate,
+        startedAt: Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }),
+      // Link the instance to the user
+      db.tx.users[userId].link({ userWorkouts: instanceId }),
+    ]);
+    return instanceId;
+  } catch (error) {
+    console.error('Error starting user workout:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update exercise completion status for today's workout instance
+ */
+export async function updateExerciseCompletion(
+  userId: string,
+  workoutId: string,
+  exerciseId: string,
+  isCompleted: boolean
+): Promise<void> {
+  try {
+    const todayDate = getTodayDateString();
+    
+    // Get today's workout instances
+    const { data } = await db.queryOnce({
+      userWorkouts: {
+        $: {
+          where: {
+            userId: userId as any,
+            workoutId: workoutId as any,
+            workoutDate: todayDate as any,
+          },
+        },
+      },
+    });
+
+    const instances = data?.userWorkouts || [];
+    
+    // Find the in_progress instance (only one should exist)
+    const instance = instances.find((inst: any) => inst.status === 'in_progress');
+
+    if (!instance) {
+      throw new Error('No active workout instance found. Please start the workout first.');
+    }
+
+    const completedExercises = (instance.completedExercises || []) as string[];
+    let updatedExercises: string[];
+
+    if (isCompleted) {
+      // Add exercise ID if not already present
+      if (!completedExercises.includes(exerciseId)) {
+        updatedExercises = [...completedExercises, exerciseId];
+      } else {
+        updatedExercises = completedExercises;
+      }
+    } else {
+      // Remove exercise ID
+      updatedExercises = completedExercises.filter((id) => id !== exerciseId);
+    }
+
+    await db.transact([
+      db.tx.userWorkouts[instance.id].update({
+        completedExercises: updatedExercises,
+        updatedAt: Date.now(),
+      }),
+    ]);
+  } catch (error) {
+    console.error('Error updating exercise completion:', error);
+    throw error;
+  }
+}
+
+/**
+ * Complete today's workout instance for a user
+ */
+export async function completeUserWorkout(
+  userId: string,
+  workoutId: string,
+  totalExercises: number
+): Promise<void> {
+  try {
+    const todayDate = getTodayDateString();
+    
+    // Get today's workout instances
+    const { data } = await db.queryOnce({
+      userWorkouts: {
+        $: {
+          where: {
+            userId: userId as any,
+            workoutId: workoutId as any,
+            workoutDate: todayDate as any,
+          },
+        },
+      },
+    });
+
+    const instances = data?.userWorkouts || [];
+    
+    // Find the in_progress instance (only one should exist)
+    const instance = instances.find((inst: any) => inst.status === 'in_progress');
+
+    if (!instance) {
+      throw new Error('No active workout instance found. Please start the workout first.');
+    }
+
+    const completedExercises = (instance.completedExercises || []) as string[];
+
+    // Check if all exercises are completed
+    if (completedExercises.length !== totalExercises) {
+      throw new Error('Please complete all exercises before finishing the workout.');
+    }
+
+    // Update instance to completed
+    await db.transact([
+      db.tx.userWorkouts[instance.id].update({
+        status: 'completed',
+        completedAt: Date.now(),
+        updatedAt: Date.now(),
+      }),
+    ]);
+  } catch (error) {
+    console.error('Error completing user workout:', error);
+    throw error;
+  }
+}
+

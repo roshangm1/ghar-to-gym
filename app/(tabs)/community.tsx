@@ -13,12 +13,14 @@ import { CHALLENGES, LEADERBOARD } from '@/mocks/challenges';
 import { SOCIAL_FEED } from '@/mocks/socialFeed';
 import { SocialPost } from '@/types';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { useStatusBarBlur } from '@/components/StatusBarBlur';
 
 export default function CommunityScreen() {
   const { profile, socialFeed } = useApp();
   const colors = useThemeColor();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
+  const { handleScroll, StatusBarBlurComponent } = useStatusBarBlur();
 
   const combined = [...socialFeed, ...SOCIAL_FEED];
   const allPosts = combined.sort(
@@ -55,9 +57,13 @@ export default function CommunityScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBarBlurComponent />
+
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <View style={styles.header}>
           <Text style={styles.headerSubtitle}>Sangha</Text>

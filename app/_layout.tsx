@@ -57,6 +57,13 @@ function RootLayoutNav() {
           }} 
         />
         <Stack.Screen 
+          name="workout/[id]/videos"
+          options={{
+            headerShown: false,
+            presentation: "card",
+          }}
+        />
+        <Stack.Screen 
           name="weight-setup"
           options={{
             presentation: "formSheet",
