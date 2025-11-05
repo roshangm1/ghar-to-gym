@@ -41,6 +41,15 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": "https://rork.com/"
+      },
+      "eas": {
+        "projectId": "b98e1f9c-7583-47ca-a9c3-ab426ebe058d"
+      }
+    },
+    "owner": "roshangm1"
   }
 }
