@@ -26,6 +26,7 @@ export default function ProfileScreen() {
 
   const { energyLevel, sleepQuality } = profile.customMetrics;
   const {achievements} = profile;
+  
 
   const handleEnergyUpdate = (value: number) => {
     updateCustomMetric('energyLevel', value);
@@ -81,6 +82,7 @@ export default function ProfileScreen() {
         scrollEventThrottle={16}
       >
         <ProfileHeader name={profile.name} avatar={profile.avatar || ''} email={profile.email || ''} />
+        {/* <SeedButton /> */}
         <ProfileStatsGrid points={profile.points} workoutStreak={profile.workoutStreak} totalWorkouts={profile.totalWorkouts} />
         <WeightGoalSection weight={profile.weight || { current: 0, target: 0, unit: 'kg' }} />
         <GoalsSection goals={profile.goals} />

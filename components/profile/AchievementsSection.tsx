@@ -2,7 +2,7 @@ import { Trophy } from 'lucide-react-native';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { Achievement, UserProfile } from '@/types';
+import { Achievement } from '@/types';
 
 interface AchievementsSectionProps {
   achievements: Achievement[];
@@ -11,6 +11,8 @@ interface AchievementsSectionProps {
 export function AchievementsSection({ achievements }: AchievementsSectionProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
+
+  console.log('achievements', achievements);
 
   return (
     <View style={styles.section}>
@@ -95,4 +97,3 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     textAlign: 'center',
   },
 });
-

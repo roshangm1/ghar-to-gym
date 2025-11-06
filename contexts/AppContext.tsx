@@ -150,10 +150,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
   ) => {
     if (isAuthenticated && dbUserId) {
       await updateCustomMetricDB(dbUserId, metric, value);
-      // Profile will update via useUserProfile hook
       return;
     }
-    // Fallback for non-authenticated users
     const updatedProfile = {
       ...profile,
       customMetrics: {
