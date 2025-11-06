@@ -99,6 +99,7 @@ const schema = i.schema({
       type: i.string(), // 'achievement' | 'workout' | 'milestone' | 'challenge'
       content: i.string(),
       likes: i.number(),
+      likedBy: i.json().optional(), // Array of user IDs who liked this post
       comments: i.number(),
       data: i.json().optional(), // Additional post data
       createdAt: i.number(),

@@ -8,13 +8,16 @@ import {
   TouchableOpacity,
   StatusBar,
   Pressable,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { BlurView } from 'expo-blur';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useWorkout } from '@/lib/useWorkouts';
-import { ArrowLeft, CheckCircle } from 'lucide-react-native';
+import { useUserProfile, useUserWorkoutInstance, updateExerciseCompletion, startUserWorkout } from '@/lib/useUserData';
+import { useApp } from '@/contexts/AppContext';
+import { ArrowLeft, Square, CheckSquare } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
 import BottomSheet, { BottomSheetView, useBottomSheet, useBottomSheetInternal } from '@gorhom/bottom-sheet';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
@@ -36,6 +39,7 @@ interface BottomSheetContentProps {
   insets: ReturnType<typeof useSafeAreaInsets>;
   isExpanded: boolean;
   setIsExpanded: (expanded: boolean) => void;
+  onToggleComplete: () => void;
 }
 
 function BottomSheetContent({
@@ -46,6 +50,7 @@ function BottomSheetContent({
   insets,
   isExpanded,
   setIsExpanded,
+  onToggleComplete,
 }: BottomSheetContentProps) {
   const styles = createStyles(colors, insets);
   const { animatedPosition } = useBottomSheetInternal();
@@ -124,9 +129,17 @@ function BottomSheetContent({
                 </Text>
               )}
             </View>
-            {isCompleted && (
-              <CheckCircle size={20} color={colors.success} />
-            )}
+            <TouchableOpacity
+              onPress={onToggleComplete}
+              activeOpacity={0.7}
+              style={styles.checkboxButton}
+            >
+              {isCompleted ? (
+                <CheckSquare size={24} color={colors.success} />
+              ) : (
+                <Square size={24} color="#FFFFFF" opacity={0.7} />
+              )}
+            </TouchableOpacity>
           </View>
         </Pressable>
 
@@ -138,6 +151,22 @@ function BottomSheetContent({
           ]} 
           collapsable={false}
         >
+          <View style={styles.completeSection}>
+            <TouchableOpacity
+              onPress={onToggleComplete}
+              activeOpacity={0.7}
+              style={styles.completeButton}
+            >
+              {isCompleted ? (
+                <CheckSquare size={24} color={colors.success} />
+              ) : (
+                <Square size={24} color="#FFFFFF" opacity={0.7} />
+              )}
+              <Text style={styles.completeText}>
+                {isCompleted ? 'Completed' : 'Mark as complete'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.instructionsContainer}>
             <Text style={styles.instructionsTitle}>Instructions:</Text>
             {exercise.instructions.map((instruction, i) => (
@@ -166,9 +195,10 @@ interface VideoItemProps {
   totalExercises: number;
   isCompleted: boolean;
   isActive: boolean;
+  onToggleComplete: () => void;
 }
 
-function VideoItem({ exercise, index, totalExercises, isCompleted, isActive }: VideoItemProps) {
+function VideoItem({ exercise, index, totalExercises, isCompleted, isActive, onToggleComplete }: VideoItemProps) {
   const colors = useThemeColor();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
@@ -226,16 +256,21 @@ function VideoItem({ exercise, index, totalExercises, isCompleted, isActive }: V
 
   return (
     <View style={styles.container}>
-      <VideoView
-        ref={playerRef}
-        player={player}
-        style={styles.video}
-        contentFit="cover"
-        nativeControls={false}
-      />
+      <Pressable 
+        onPress={handlePlayPause}
+        style={styles.videoContainer}
+      >
+        <VideoView
+          ref={playerRef}
+          player={player}
+          style={styles.video}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      </Pressable>
       
       {/* Overlay with details */}
-      <View style={styles.overlay}>
+      <View style={styles.overlay} pointerEvents="box-none">
         {/* Back button */}
         <TouchableOpacity
           style={styles.backButton}
@@ -255,7 +290,7 @@ function VideoItem({ exercise, index, totalExercises, isCompleted, isActive }: V
           enableDynamicSizing={true}
           animateOnMount={true}
           snapPoints={[110]}
-          index={1}
+          index={0}
           handleComponent={() => null}
         >
           <BottomSheetContent 
@@ -266,6 +301,7 @@ function VideoItem({ exercise, index, totalExercises, isCompleted, isActive }: V
             insets={insets}
             isExpanded={isExpanded}
             setIsExpanded={setIsExpanded}
+            onToggleComplete={onToggleComplete}
           />
         </BottomSheet>
 
@@ -308,6 +344,16 @@ export default function WorkoutVideosScreen() {
   const { isLoading, error, data } = useWorkout(actualWorkoutId);
   const workout = data?.workout;
 
+  // Get user profile and authentication
+  const { userId } = useUserProfile();
+  const { isAuthenticated } = useApp();
+
+  // Fetch user workout instance to sync completion status
+  const { status, completedExercises: dbCompletedExercises, isLoading: instanceLoading } = useUserWorkoutInstance(
+    userId,
+    actualWorkoutId
+  );
+
   // Get exercises with videos
   const exercisesWithVideos = workout?.exercises.filter((ex) => ex.videoUrl) || [];
   
@@ -325,14 +371,88 @@ export default function WorkoutVideosScreen() {
 
   // Initialize state before early returns
   const [currentIndex, setCurrentIndex] = useState(startIndex);
+  const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set(dbCompletedExercises));
   const pagerRef = useRef<PagerView>(null);
   const initialPageSetRef = useRef(false);
+
+  // Sync local state with database state
+  useEffect(() => {
+    setCompletedExercises(new Set(dbCompletedExercises));
+  }, [dbCompletedExercises]);
+
+  const isWorkoutStarted = status === 'in_progress' || status === 'completed';
 
   // Handle page selection
   const handlePageSelected = useCallback((e: any) => {
     const newIndex = e.nativeEvent.position;
     setCurrentIndex(newIndex);
   }, []);
+
+  // Toggle exercise completion
+  const toggleExerciseComplete = useCallback(async (exerciseId: string) => {
+    if (!isAuthenticated || !userId) {
+      Alert.alert(
+        'Login Required',
+        'You need to be logged in to track exercise completion.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Login',
+            onPress: () => router.push('/auth'),
+          },
+        ]
+      );
+      return;
+    }
+
+    // If workout not started, start it first
+    if (!isWorkoutStarted) {
+      try {
+        await startUserWorkout(userId, actualWorkoutId);
+      } catch (error: any) {
+        Alert.alert(
+          'Error',
+          error.message || 'Failed to start workout. Please try again.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
+    const isCompleted = completedExercises.has(exerciseId);
+    
+    // Optimistically update local state
+    setCompletedExercises((prev) => {
+      const newSet = new Set(prev);
+      if (isCompleted) {
+        newSet.delete(exerciseId);
+      } else {
+        newSet.add(exerciseId);
+      }
+      return newSet;
+    });
+
+    // Update in database
+    try {
+      await updateExerciseCompletion(userId, actualWorkoutId, exerciseId, !isCompleted);
+    } catch (error: any) {
+      // Revert optimistic update on error
+      setCompletedExercises((prev) => {
+        const newSet = new Set(prev);
+        if (isCompleted) {
+          newSet.add(exerciseId);
+        } else {
+          newSet.delete(exerciseId);
+        }
+        return newSet;
+      });
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to update exercise. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  }, [isAuthenticated, userId, isWorkoutStarted, completedExercises, actualWorkoutId]);
 
   // Set initial page only once on mount
   useEffect(() => {
@@ -347,7 +467,7 @@ export default function WorkoutVideosScreen() {
     }
   }, [startIndex]);
 
-  if (isLoading) {
+  if (isLoading || instanceLoading) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Loading videos...</Text>
@@ -389,8 +509,9 @@ export default function WorkoutVideosScreen() {
               exercise={exercise}
               index={index}
               totalExercises={exercisesWithVideos.length}
-              isCompleted={false}
+              isCompleted={completedExercises.has(exercise.id)}
               isActive={index === currentIndex}
+              onToggleComplete={() => toggleExerciseComplete(exercise.id)}
             />
           </View>
         ))}
@@ -417,6 +538,10 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  videoContainer: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   video: {
     width: SCREEN_WIDTH,
@@ -482,6 +607,25 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
     overflow: 'hidden',
     pointerEvents: 'none',
   },
+  completeSection: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  completeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  completeText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -492,6 +636,9 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  checkboxButton: {
+    padding: 4,
   },
   exerciseNumber: {
     width: 40,

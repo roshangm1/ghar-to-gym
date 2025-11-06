@@ -1,5 +1,6 @@
 import { db, id } from './instant';
 import { UserProfile, WorkoutLog, Achievement } from '@/types';
+import { createWorkoutPost, createAchievementPost } from './useSocialFeed';
 
 export function useUserProfile() {
   const { user, isLoading: authLoading } = db.useAuth();
@@ -225,6 +226,41 @@ export async function logWorkoutToDB(
 
       // Check and unlock achievements
       await checkAndUnlockAchievements(userId, newStreak, newTotalWorkouts);
+
+      // Create social post if autoPost and shareWorkouts are enabled
+      const userPreferences = userRecord.preferences || {
+        autoPost: true,
+        shareWorkouts: true,
+        shareMilestones: true,
+        shareChallenges: true,
+      };
+
+      if (userPreferences.autoPost && userPreferences.shareWorkouts) {
+        try {
+          // Fetch workout title
+          const { data: workoutData } = await db.queryOnce({
+            workouts: {
+              $: {
+                where: { id: workoutLog.workoutId as any },
+              },
+            },
+          });
+
+          const workout = workoutData?.workouts?.[0];
+          if (workout) {
+            await createWorkoutPost(
+              userId,
+              userRecord.name,
+              workoutLog.workoutId,
+              workout.title,
+              userRecord.avatar
+            );
+          }
+        } catch (error) {
+          console.error('Error creating workout post:', error);
+          // Don't throw - workout was logged, just post creation failed
+        }
+      }
     } else {
       console.error('No profile found for userId:', userId);
       throw new Error('User profile not found. Please try logging out and back in.');
@@ -279,11 +315,24 @@ async function checkAndUnlockAchievements(
         where: { userId },
       },
     },
+    users: {
+      $: {
+        where: { id: userId },
+      },
+    },
   });
 
   const unlockedAchievementIds = new Set(
     (data?.achievements || []).map((a: any) => a.achievementId)
   );
+
+  const userRecord = data?.users?.[0];
+  const userPreferences = userRecord?.preferences || {
+    autoPost: true,
+    shareWorkouts: true,
+    shareMilestones: true,
+    shareChallenges: true,
+  };
 
   for (const achievement of achievementsToCheck) {
     if (
@@ -304,6 +353,22 @@ async function checkAndUnlockAchievements(
         // Link the achievement to the user (users table)
         db.tx.users[userId].link({ achievements: achievementId }),
       ]);
+
+      // Create social post if autoPost is enabled
+      if (userPreferences.autoPost && userRecord) {
+        try {
+          await createAchievementPost(
+            userId,
+            userRecord.name,
+            achievement.title,
+            achievement.icon,
+            userRecord.avatar
+          );
+        } catch (error) {
+          console.error('Error creating achievement post:', error);
+          // Don't throw - achievement was unlocked, just post creation failed
+        }
+      }
     }
   }
 }

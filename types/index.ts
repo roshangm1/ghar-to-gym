@@ -123,6 +123,7 @@ export interface UserProfile {
     timestamp: string;
     likes: number;
     comments: number;
+    isLiked?: boolean; // Whether the current user has liked this post
     data?: {
       achievementId?: string;
       workoutId?: string;

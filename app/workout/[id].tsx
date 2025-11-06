@@ -1,5 +1,5 @@
 import { useLocalSearchParams, router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -41,24 +41,33 @@ export default function WorkoutDetailScreen() {
     id as string
   );
   
-  const completedExercises = new Set(dbCompletedExercises);
-  const isWorkoutStarted = status === 'in_progress' || status === 'completed';
-  const isWorkoutCompleted = status === 'completed';
-  const styles = createStyles(colors);
-
-  if (isLoading || instanceLoading) {
-    return <LoadingState />;
-  }
-
-  if (error || !workout) {
-    return <ErrorState error={error instanceof Error ? error : null} />;
-  }
-
-  const allExercisesCompleted = workout.exercises.every((ex) =>
-    completedExercises.has(ex.id)
+  // Memoize completedExercises Set to prevent unnecessary re-renders
+  const completedExercises = useMemo(
+    () => new Set(dbCompletedExercises),
+    [dbCompletedExercises]
   );
 
-  const handleStartWorkout = async () => {
+  // Memoize derived values
+  const isWorkoutStarted = useMemo(
+    () => status === 'in_progress' || status === 'completed',
+    [status]
+  );
+  
+  const isWorkoutCompleted = useMemo(
+    () => status === 'completed',
+    [status]
+  );
+
+  // Memoize styles to prevent recreation
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Memoize allExercisesCompleted before early returns
+  const allExercisesCompleted = useMemo(() => {
+    if (!workout) return false;
+    return workout.exercises.every((ex) => completedExercises.has(ex.id));
+  }, [workout, completedExercises]);
+
+  const handleStartWorkout = useCallback(async () => {
     if (!isAuthenticated || !userId) {
       Alert.alert(
         'Login Required',
@@ -86,9 +95,10 @@ export default function WorkoutDetailScreen() {
         [{ text: 'OK' }]
       );
     }
-  };
+  }, [isAuthenticated, userId, id]);
 
-  const toggleExercise = async (exerciseId: string) => {
+  const toggleExercise = useCallback(async (exerciseId: string) => {
+    if (!workout) return;
     if (!isAuthenticated || !userId) {
       Alert.alert(
         'Login Required',
@@ -127,9 +137,10 @@ export default function WorkoutDetailScreen() {
         [{ text: 'OK' }]
       );
     }
-  };
+  }, [isAuthenticated, userId, id, isWorkoutStarted, completedExercises, workout]);
 
-  const handleCompleteWorkout = async () => {
+  const handleCompleteWorkout = useCallback(async () => {
+    if (!workout) return;
     if (!isAuthenticated || !userId) {
       Alert.alert(
         'Login Required',
@@ -197,7 +208,15 @@ export default function WorkoutDetailScreen() {
         [{ text: 'OK' }]
       );
     }
-  };
+  }, [isAuthenticated, userId, isWorkoutStarted, allExercisesCompleted, workout, logWorkout]);
+
+  if (isLoading || instanceLoading) {
+    return <LoadingState />;
+  }
+
+  if (error || !workout) {
+    return <ErrorState error={error instanceof Error ? error : null} />;
+  }
 
   return (
     <View style={styles.container}>
