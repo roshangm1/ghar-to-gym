@@ -2,13 +2,13 @@ import { Trophy } from 'lucide-react-native';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { UserProfile } from '@/types';
+import { Achievement, UserProfile } from '@/types';
 
 interface AchievementsSectionProps {
-  profile: UserProfile;
+  achievements: Achievement[];
 }
 
-export function AchievementsSection({ profile }: AchievementsSectionProps) {
+export function AchievementsSection({ achievements }: AchievementsSectionProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
 
@@ -19,7 +19,7 @@ export function AchievementsSection({ profile }: AchievementsSectionProps) {
         <Text style={styles.sectionTitle}>Achievements</Text>
       </View>
       <View style={styles.achievementsGrid}>
-        {profile.achievements.map((achievement) => (
+        {achievements.map((achievement: Achievement) => (
           <View key={achievement.id} style={styles.achievementCard}>
             <Text style={styles.achievementIcon}>{achievement.icon}</Text>
             <Text style={styles.achievementTitle} numberOfLines={2}>

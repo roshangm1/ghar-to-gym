@@ -17,12 +17,53 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { useWorkout } from '@/lib/useWorkouts';
 import { useUserProfile, useUserWorkoutInstance, updateExerciseCompletion, startUserWorkout } from '@/lib/useUserData';
 import { useApp } from '@/contexts/AppContext';
-import { ArrowLeft, Square, CheckSquare } from 'lucide-react-native';
+import { ArrowLeft, Square, CheckSquare, Volume2, VolumeX } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
 import BottomSheet, { BottomSheetView, useBottomSheet, useBottomSheetInternal } from '@gorhom/bottom-sheet';
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
+import { useAnimatedReaction, runOnJS, useSharedValue } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+interface MuteButtonProps {
+  player: ReturnType<typeof useVideoPlayer>;
+  colors: ReturnType<typeof useThemeColor>;
+  insets: ReturnType<typeof useSafeAreaInsets>;
+}
+
+function MuteButton({ player, colors, insets }: MuteButtonProps) {
+  const styles = createStyles(colors, insets);
+  const [isMuted, setIsMuted] = useState(true);
+
+  // Sync with player's initial muted state
+  useEffect(() => {
+    setIsMuted(player.muted);
+  }, [player]);
+
+  const handleToggleMute = useCallback(() => {
+    const newMutedState = !player.muted;
+    // expo-video requires direct property assignment for muted state
+    // Using player prop directly avoids ref mutation issues with worklets
+    // eslint-disable-next-line react-compiler/react-compiler
+    player.muted = newMutedState;
+    setIsMuted(newMutedState);
+  }, [player]);
+
+  return (
+    <TouchableOpacity
+      style={styles.muteButton}
+      onPress={handleToggleMute}
+      activeOpacity={0.7}
+    >
+      <View style={styles.muteButtonInner}>
+        {isMuted ? (
+          <VolumeX size={24} color="#FFFFFF" />
+        ) : (
+          <Volume2 size={24} color="#FFFFFF" />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 interface BottomSheetContentProps {
   exercise: {
@@ -60,7 +101,7 @@ function BottomSheetContent({
   // When minimized, position is near 0 (at bottom)
   // When expanded, position increases (sheet pulled up)
   const minimizedHeightRef = useRef(0);
-  const lastPositionRef = useRef(0);
+  const lastPosition = useSharedValue(0);
   
   useAnimatedReaction(
     () => animatedPosition?.value ?? 0,
@@ -76,7 +117,7 @@ function BottomSheetContent({
         const shouldBeExpanded = position > expandedThreshold;
         
         // Check position change to avoid flickering
-        const positionDelta = Math.abs(position - lastPositionRef.current);
+        const positionDelta = Math.abs(position - lastPosition.value);
         
         // Only update state if there's a significant change to avoid flickering
         if (positionDelta > 5) { // 5px threshold to avoid micro-updates
@@ -88,7 +129,7 @@ function BottomSheetContent({
           }
         }
         
-        lastPositionRef.current = position;
+        lastPosition.value = position;
       }
     },
     []
@@ -192,13 +233,12 @@ interface VideoItemProps {
     instructions: string[];
   };
   index: number;
-  totalExercises: number;
   isCompleted: boolean;
   isActive: boolean;
   onToggleComplete: () => void;
 }
 
-function VideoItem({ exercise, index, totalExercises, isCompleted, isActive, onToggleComplete }: VideoItemProps) {
+function VideoItem({ exercise, index, isCompleted, isActive, onToggleComplete }: VideoItemProps) {
   const colors = useThemeColor();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
@@ -305,12 +345,8 @@ function VideoItem({ exercise, index, totalExercises, isCompleted, isActive, onT
           />
         </BottomSheet>
 
-        {/* Progress indicator */}
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
-            {index + 1} / {totalExercises}
-          </Text>
-        </View>
+        {/* Mute/Unmute button */}
+        <MuteButton player={player} colors={colors} insets={insets} />
 
         {/* Play/Pause button overlay - only show when paused */}
         {!isPlaying && (
@@ -508,7 +544,6 @@ export default function WorkoutVideosScreen() {
             <VideoItem
               exercise={exercise}
               index={index}
-              totalExercises={exercisesWithVideos.length}
               isCompleted={completedExercises.has(exercise.id)}
               isActive={index === currentIndex}
               onToggleComplete={() => toggleExerciseComplete(exercise.id)}
@@ -553,7 +588,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
   },
   backButton: {
     position: 'absolute',
-    top: insets.top + 16,
+    top: insets.top,
     left: 16,
     zIndex: 10,
   },
@@ -599,7 +634,7 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
   expandedContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: insets.bottom + 16,
+    paddingBottom: insets.bottom,
   },
   expandedContentHidden: {
     opacity: 0,
@@ -709,28 +744,24 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  progressContainer: {
+  muteButton: {
     position: 'absolute',
-    top: insets.top + 16,
+    top: insets.top,
     right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
     zIndex: 10,
+  },
+  muteButtonInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 5,
-  },
-  progressText: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   playPauseButton: {
     position: 'absolute',

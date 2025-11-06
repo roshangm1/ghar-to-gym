@@ -5,10 +5,12 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { UserProfile } from '@/types';
 
 interface ProfileStatsGridProps {
-  profile: UserProfile;
+  points: number;
+  workoutStreak: number;
+  totalWorkouts: number;
 }
 
-export function ProfileStatsGrid({ profile }: ProfileStatsGridProps) {
+export function ProfileStatsGrid({ points, workoutStreak, totalWorkouts }: ProfileStatsGridProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
 
@@ -16,17 +18,17 @@ export function ProfileStatsGrid({ profile }: ProfileStatsGridProps) {
     <View style={styles.statsGrid}>
       <View style={styles.statBox}>
         <Trophy size={24} color={colors.primary} />
-        <Text style={styles.statValue}>{profile.points}</Text>
+        <Text style={styles.statValue}>{points}</Text>
         <Text style={styles.statLabel}>Total Points</Text>
       </View>
       <View style={styles.statBox}>
         <Text style={styles.statEmoji}>🔥</Text>
-        <Text style={styles.statValue}>{profile.workoutStreak}</Text>
+        <Text style={styles.statValue}>{workoutStreak}</Text>
         <Text style={styles.statLabel}>Day Streak</Text>
       </View>
       <View style={styles.statBox}>
         <Text style={styles.statEmoji}>💪</Text>
-        <Text style={styles.statValue}>{profile.totalWorkouts}</Text>
+        <Text style={styles.statValue}>{totalWorkouts}</Text>
         <Text style={styles.statLabel}>Workouts</Text>
       </View>
     </View>

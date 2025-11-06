@@ -2,15 +2,16 @@ import { Target } from 'lucide-react-native';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { UserProfile } from '@/types';
+import { UserGoal, UserProfile } from '@/types';
 
 interface GoalsSectionProps {
-  profile: UserProfile;
+  goals: UserGoal[];
 }
 
-export function GoalsSection({ profile }: GoalsSectionProps) {
+export function GoalsSection({ goals }: GoalsSectionProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
+  console.log('goals', goals);
 
   return (
     <View style={styles.section}>
@@ -18,7 +19,7 @@ export function GoalsSection({ profile }: GoalsSectionProps) {
         <Target size={20} color={colors.primary} />
         <Text style={styles.sectionTitle}>My Goals</Text>
       </View>
-      {profile.goals.map((goal) => {
+      {goals.map((goal: UserGoal) => {
         const progress = (goal.current / goal.target) * 100;
         return (
           <View key={goal.id} style={styles.goalCard}>

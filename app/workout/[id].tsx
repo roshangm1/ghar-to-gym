@@ -30,6 +30,8 @@ export default function WorkoutDetailScreen() {
   const colors = useThemeColor();
   const { userId } = useUserProfile();
   const [isUpdating, setIsUpdating] = useState(false);
+
+  console.log('re-rendering')
   
   // Fetch workout from InstantDB
   const { isLoading, error, data } = useWorkout(id as string);

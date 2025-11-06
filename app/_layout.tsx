@@ -14,6 +14,9 @@ import {
   Theme,
 } from "@react-navigation/native";
 import colors from "@/constants/colors";
+import { enableFreeze } from "react-native-screens";
+
+enableFreeze(true);
 
 SplashScreen.preventAutoHideAsync();
 

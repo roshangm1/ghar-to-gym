@@ -25,6 +25,7 @@ export default function ProfileScreen() {
   const { handleScroll, StatusBarBlurComponent } = useStatusBarBlur();
 
   const { energyLevel, sleepQuality } = profile.customMetrics;
+  const {achievements} = profile;
 
   const handleEnergyUpdate = (value: number) => {
     updateCustomMetric('energyLevel', value);
@@ -64,7 +65,7 @@ export default function ProfileScreen() {
               { bullet: '💾', text: 'Sync across all devices' },
             ]}
           />
-          <SeedButton />
+          {/* <SeedButton /> */}
         </ScrollView>
       </View>
     );
@@ -79,18 +80,17 @@ export default function ProfileScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <ProfileHeader profile={profile} />
-        <SeedButton />
-        <ProfileStatsGrid profile={profile} />
-        <WeightGoalSection profile={profile} />
-        <GoalsSection profile={profile} />
+        <ProfileHeader name={profile.name} avatar={profile.avatar || ''} email={profile.email || ''} />
+        <ProfileStatsGrid points={profile.points} workoutStreak={profile.workoutStreak} totalWorkouts={profile.totalWorkouts} />
+        <WeightGoalSection weight={profile.weight || { current: 0, target: 0, unit: 'kg' }} />
+        <GoalsSection goals={profile.goals} />
         <CustomMetricsSection
           energyLevel={energyLevel}
           sleepQuality={sleepQuality}
           onEnergyUpdate={handleEnergyUpdate}
           onSleepUpdate={handleSleepUpdate}
         />
-        <AchievementsSection profile={profile} />
+        <AchievementsSection achievements={achievements} />
       </ScrollView>
     </View>
   );

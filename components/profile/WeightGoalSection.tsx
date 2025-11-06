@@ -6,10 +6,14 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { UserProfile } from '@/types';
 
 interface WeightGoalSectionProps {
-  profile: UserProfile;
+  weight: {
+    current: number;
+    target: number;
+    unit: 'kg' | 'lbs';
+  };
 }
 
-export function WeightGoalSection({ profile }: WeightGoalSectionProps) {
+export function WeightGoalSection({ weight }: WeightGoalSectionProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
 
@@ -24,27 +28,27 @@ export function WeightGoalSection({ profile }: WeightGoalSectionProps) {
         onPress={() => router.push('/weight-setup')}
         activeOpacity={0.7}
       >
-        {profile.weight ? (
+        {weight ? (
           <View style={styles.weightContent}>
             <View style={styles.weightRow}>
               <View style={styles.weightItem}>
                 <Text style={styles.weightLabel}>Current</Text>
                 <Text style={styles.weightValue}>
-                  {profile.weight.current} {profile.weight.unit}
+                  {weight.current} {weight.unit}
                 </Text>
               </View>
               <Text style={styles.weightArrow}>→</Text>
               <View style={styles.weightItem}>
                 <Text style={styles.weightLabel}>Target</Text>
                 <Text style={styles.weightValue}>
-                  {profile.weight.target} {profile.weight.unit}
+                  {weight.target} {weight.unit}
                 </Text>
               </View>
             </View>
             <View style={styles.weightDiff}>
               <Text style={styles.weightDiffText}>
-                {profile.weight.target - profile.weight.current > 0 ? '+' : ''}
-                {(profile.weight.target - profile.weight.current).toFixed(1)} {profile.weight.unit} to goal
+                {weight.target - weight.current > 0 ? '+' : ''}
+                {(weight.target - weight.current).toFixed(1)} {weight.unit} to goal
               </Text>
             </View>
             <Text style={styles.weightEdit}>Tap to edit</Text>

@@ -7,10 +7,12 @@ import { UserProfile } from '@/types';
 import { useAuth } from '@/lib/useAuth';
 
 interface ProfileHeaderProps {
-  profile: UserProfile;
+  name: string;
+  avatar: string;
+  email: string;
 }
 
-export function ProfileHeader({ profile }: ProfileHeaderProps) {
+export function ProfileHeader({ name, avatar, email }: ProfileHeaderProps) {
   const colors = useThemeColor();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
@@ -46,11 +48,11 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
       <Text style={styles.headerSubtitle}>Your Profile</Text>
       <View style={styles.profileNameContainer}>
         <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
+          <Text style={styles.avatarText}>{name.charAt(0)}</Text>
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{profile.name}</Text>
-          <Text style={styles.profileEmail}>{profile.email}</Text>
+          <Text style={styles.profileName}>{name}</Text>
+          <Text style={styles.profileEmail}>{email || 'No email found'}</Text>
         </View>
       </View>
       <View style={styles.profileActions}>
