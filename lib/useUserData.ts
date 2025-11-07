@@ -86,33 +86,23 @@ export function useUserWorkoutLogs() {
 }
 
 export function useUserAchievements() {
-  const { user } = db.useAuth();
-  const authUserId = user?.id;
+  const { userId } = useUserProfile();
+
 
   // Query users table by userId, then get achievements via link
-  const { data: userData } = db.useQuery(
-    authUserId && authUserId.length > 0
+  const { data: achievementsData } = db.useQuery(
+    userId && userId.length > 0
       ? {
-          users: {
+          achievements: {
             $: {
-              where: { userId: authUserId } as any,
+              where: { userId: userId } as any,
             },
-            achievements: {}, // Use the link to fetch achievements
           },
         }
       : {}
   );
 
-  const userRecord = userData?.users?.[0] || null;
-  const achievements: Achievement[] =
-    userRecord?.achievements?.map((ach: any) => ({
-      id: ach.id,
-      title: ach.title,
-      description: ach.description,
-      icon: ach.icon,
-      unlockedDate: ach.unlockedDate,
-    })) || [];
-
+  const achievements = achievementsData?.achievements || [];
   return { achievements, isLoading: false };
 }
 

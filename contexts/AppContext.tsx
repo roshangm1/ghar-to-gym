@@ -111,11 +111,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     loadData();
   }, [isAuthenticated]);
 
-  // Use database profile if authenticated, otherwise use local profile
-  // For authenticated users, stats (totalWorkouts, workoutStreak, points) are fetched from InstantDB
-  // via useUserProfile hook which queries the userProfiles table
-  // Workout logs are tracked separately in workoutLogs table
-  // Stats are maintained in userProfiles table for performance and updated when workouts are logged
+
   const profile: UserProfile = isAuthenticated && dbProfile
     ? {
         ...dbProfile,
