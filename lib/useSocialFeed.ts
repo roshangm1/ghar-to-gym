@@ -231,12 +231,13 @@ export async function createChallengePost(
  * Returns empty array if postId is empty
  */
 export function useComments(postId: string) {
+  // Query comments by postId field (more reliable than relationship)
   const { data, isLoading } = db.useQuery(
     postId
       ? {
           comments: {
             $: {
-              where: { postId },
+              where: { postId: postId as any },
             },
           },
         }
@@ -318,22 +319,23 @@ export async function createComment(
 
     const userExists = userData?.users && userData.users.length > 0;
 
-    // Build transaction array
+    console.log('comment id', commentId)
+    console.log('post entity id', postEntityId);
+    
+    // Build transaction array - all operations in ONE transaction
     const transactions: any[] = [
       // Create the comment
       db.tx.comments[commentId].update({
         postId: postEntityId,
         userId,
         userName,
-        userAvatar: userAvatar || null,
+        userAvatar: userAvatar || '',
         content: content.trim(),
         createdAt: Date.now(),
       }),
-      // Link comment to post (use entity ID)
-      db.tx.socialPosts[postEntityId].link({ comments: commentId }),
-      // Update comment count on post (use entity ID)
+      // Update comment count on post
       db.tx.socialPosts[postEntityId].update({
-        comments: currentComments + 1,
+        comments: (currentComments || 0) + 1,
       }),
     ];
 
@@ -342,9 +344,16 @@ export async function createComment(
       transactions.push(db.tx.users[userId].link({ comments: commentId }));
     }
 
+    // Execute all operations in a single transaction
     await db.transact(transactions);
-
+    
+    // Note: We don't link comments to posts via relationship because:
+    // 1. The 'comments' field is a number (count), not a relationship
+    // 2. The relationship label 'comments' conflicts with the field name
+    // 3. Querying by postId field works perfectly without the link
+    
     return commentId;
+
   } catch (error) {
     console.error('Error creating comment:', error);
     throw error;

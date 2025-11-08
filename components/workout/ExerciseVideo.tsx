@@ -1,17 +1,20 @@
-import { Clock, Flame, Play, CheckCircle } from 'lucide-react-native';
+import { CheckCircle } from 'lucide-react-native';
 import React, { useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Exercise } from '@/types';
 import { useEvent } from 'expo';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { router } from 'expo-router';
+
+const CONTAINER_HEIGHT = 220;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface ExerciseVideoProps {
   exercise: Exercise;
@@ -36,19 +39,37 @@ export function ExerciseVideo({
 
   useEvent(player, 'playingChange', { isPlaying: player.playing });
 
+  // For portrait videos with cover mode, calculate offset to show bottom part
+  // Portrait videos (9:16) when scaled to cover width become much taller
+  // We shift the video down to show the bottom portion where the person is
+  // Estimate: For 9:16 portrait, height ≈ width * 1.78 when covering width
+  // Shift down by ~35% of extra height to show bottom part
+  const estimatedVideoHeight = SCREEN_WIDTH * 1.78; // Rough estimate for 9:16 portrait
+  const extraHeight = estimatedVideoHeight - CONTAINER_HEIGHT;
+  const videoOffset = -(extraHeight * 0.40); // Negative = shift down to show bottom
+
   const videoStyles = StyleSheet.create({
     videoContainer: {
       width: '100%',
-      height: 220,
+      height: CONTAINER_HEIGHT,
       backgroundColor: '#000',
       borderRadius: 12,
       overflow: 'hidden',
       marginBottom: 12,
       position: 'relative',
     },
-    video: {
+    videoWrapper: {
       width: '100%',
       height: '100%',
+      overflow: 'hidden',
+    },
+    video: {
+      width: '100%',
+      // Make video taller to allow for translation
+      // For portrait videos with cover mode, the video will be scaled
+      // to fill the width, making it taller than the container
+      height: '200%', // Make it 200% height to have room for translation
+      transform: [{ translateY: videoOffset }], // Shift video down to show bottom part
     },
   });
 
@@ -97,6 +118,7 @@ export function ExerciseVideo({
               router.push({
                 pathname: '/workout/[id]/videos',
                 params: {
+                  id: workoutId,
                   workoutId,
                   initialIndex: index.toString(),
                 },
@@ -105,13 +127,15 @@ export function ExerciseVideo({
           }}
           activeOpacity={0.9}
         >
-          <VideoView
-            ref={playerRef}
-            player={player}
-            style={videoStyles.video}
-            contentFit="cover"
-            nativeControls={false}
-          />
+          <View style={videoStyles.videoWrapper}>
+            <VideoView
+              ref={playerRef}
+              player={player}
+              style={videoStyles.video}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          </View>
           <View style={styles.playOverlay}>
             <Text style={styles.playIcon}>▶</Text>
           </View>

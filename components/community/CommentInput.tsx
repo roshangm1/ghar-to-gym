@@ -1,17 +1,14 @@
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { Send } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import { useAnimatedStyle } from 'react-native-reanimated';
-import Animated from 'react-native-reanimated';
-import { Send } from 'lucide-react-native';
-import { useThemeColor } from '@/hooks/useThemeColor';
 
 interface CommentInputProps {
   onSubmit: (text: string) => Promise<void>;
@@ -24,13 +21,8 @@ export function CommentInput({ onSubmit, disabled = false }: CommentInputProps) 
   const styles = createStyles(colors, insets);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { height } = useReanimatedKeyboardAnimation();
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: -height.value }],
-    };
-  });
+ 
 
   const handleSubmit = async () => {
     const trimmed = commentText.trim();
@@ -42,18 +34,18 @@ export function CommentInput({ onSubmit, disabled = false }: CommentInputProps) 
     try {
       await onSubmit(trimmed);
       setCommentText('');
+      setIsSubmitting(false);
     } catch (error) {
       // Error handling is done in parent component
       console.error('Error in CommentInput:', error);
-    } finally {
       setIsSubmitting(false);
-    }
+    } 
   };
 
   const isDisabled = !commentText.trim() || isSubmitting || disabled;
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
+    <View style={styles.container}>
       <TextInput
         style={styles.input}
         placeholder="Add a comment..."
@@ -76,7 +68,7 @@ export function CommentInput({ onSubmit, disabled = false }: CommentInputProps) 
           <Send size={20} color={colors.background} />
         )}
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -87,14 +79,13 @@ const createStyles = (
   StyleSheet.create({
     container: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
       gap: 8,
       paddingHorizontal: 16,
       paddingVertical: 12,
-      paddingBottom: insets.bottom + 12,
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.background,
+      paddingBottom: insets.bottom,
     },
     input: {
       flex: 1,

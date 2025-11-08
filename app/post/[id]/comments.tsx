@@ -6,16 +6,26 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  ScrollView,
+  ScrollViewProps,
 } from 'react-native';
+import { LegendList } from '@legendapp/list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { KeyboardAvoidingView, KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { X } from 'lucide-react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useComments, createComment, deleteComment } from '@/lib/useSocialFeed';
 import { useUserProfile } from '@/lib/useUserData';
 import { useApp } from '@/contexts/AppContext';
 import { CommentCard, CommentInput } from '@/components/community';
+import { Comment } from '@/types';
+import { useHeaderHeight } from '@react-navigation/elements';
+
+const RenderScrollComponent = React.forwardRef<ScrollView, ScrollViewProps>(
+    (props, ref) => <KeyboardAwareScrollView {...props} ref={ref} />,
+  );
+RenderScrollComponent.displayName = 'RenderScrollComponent';
 
 export default function CommentsScreen() {
   const { id: postId } = useLocalSearchParams<{ id: string }>();
@@ -26,6 +36,9 @@ export default function CommentsScreen() {
   const { profile } = useApp();
   const { userId, profile: userProfile } = useUserProfile();
   const { comments, isLoading } = useComments(postId);
+
+  const headerHeight = useHeaderHeight();
+
 
   const formatTimeAgo = useCallback((timestamp: string) => {
     const now = new Date().getTime();
@@ -66,7 +79,7 @@ export default function CommentsScreen() {
     }
   }, [postId, userId, userProfile?.name, profile.name, userProfile?.avatar, profile.avatar]);
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = useCallback(async (commentId: string) => {
     if (!userId) {
       Alert.alert('Login Required', 'You must be logged in to delete comments.');
       return;
@@ -91,7 +104,42 @@ export default function CommentsScreen() {
         },
       ]
     );
-  };
+  }, [userId]);
+
+  const renderComment = useCallback(
+    ({ item: comment }: { item: Comment }) => (
+      <CommentCard
+        comment={comment}
+        isCurrentUser={comment.userId === userId}
+        onDelete={
+          comment.userId === userId
+            ? () => handleDeleteComment(comment.id)
+            : undefined
+        }
+        formatTimeAgo={formatTimeAgo}
+      />
+    ),
+    [userId, formatTimeAgo, handleDeleteComment]
+  );
+
+  const renderEmpty = useCallback(() => {
+    if (isLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading comments...</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No comments yet.</Text>
+        <Text style={styles.emptySubtext}>Be the first to comment!</Text>
+      </View>
+    );
+  }, [isLoading, colors.primary, styles]);
+
+  
 
   return (
     <View style={styles.container}>
@@ -106,42 +154,22 @@ export default function CommentsScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAwareScrollView
-        style={styles.keyboardView}
-        contentContainerStyle={styles.commentsContent}
-        showsVerticalScrollIndicator={false}
-        bottomOffset={userId ? 80 : 0}
-      >
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading comments...</Text>
-          </View>
-        ) : comments.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No comments yet.</Text>
-            <Text style={styles.emptySubtext}>Be the first to comment!</Text>
-          </View>
-        ) : (
-          comments.map((comment) => (
-            <CommentCard
-              key={comment.id}
-              comment={comment}
-              isCurrentUser={comment.userId === userId}
-              onDelete={
-                comment.userId === userId
-                  ? () => handleDeleteComment(comment.id)
-                  : undefined
-              }
-              formatTimeAgo={formatTimeAgo}
-            />
-          ))
-        )}
-      </KeyboardAwareScrollView>
 
-      {userId && (
-        <CommentInput onSubmit={handleSubmitComment} />
-      )}
+    <KeyboardAvoidingView style={styles.keyboardView}        
+     behavior="padding"
+     keyboardVerticalOffset={insets.bottom}
+    >
+        <LegendList
+          data={comments}
+          renderItem={renderComment}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={styles.flatListContent}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={(item) => item.id}
+        
+        />
+        {userId && <CommentInput onSubmit={handleSubmitComment} />}
+        </KeyboardAvoidingView>
     </View>
   );
 }
@@ -163,7 +191,7 @@ const createStyles = (
       paddingBottom: 12,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      paddingTop: 12
+      paddingTop: 16
     },
     headerTitle: {
       fontSize: 20,
@@ -175,9 +203,13 @@ const createStyles = (
     },
     keyboardView: {
       flex: 1,
+      paddingBottom: 12,
     },
     commentsContent: {
-      padding: 16,
+      flexGrow: 1,
+    },
+    flatListContent: {
+      padding: 12,
       paddingBottom: 20,
     },
     loadingContainer: {

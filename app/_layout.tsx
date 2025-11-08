@@ -63,7 +63,7 @@ function RootLayoutNav() {
           name="workout/[id]/videos"
           options={{
             headerShown: false,
-            presentation: "card",
+            presentation: 'fullScreenModal'
           }}
         />
         <Stack.Screen 
