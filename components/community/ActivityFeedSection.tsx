@@ -107,8 +107,10 @@ export function ActivityFeedSection({
 
 const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
   section: {
-    marginTop: 20,
     paddingHorizontal: 12,
+    paddingTop: 12,
+    marginTop: 12,
+    backgroundColor: colors.backgroundSecondary,
   },
   sectionHeader: {
     flexDirection: 'row',

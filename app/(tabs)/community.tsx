@@ -83,7 +83,7 @@ export default function CommunityScreen() {
       <StatusBarBlurComponent />
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom  }}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
