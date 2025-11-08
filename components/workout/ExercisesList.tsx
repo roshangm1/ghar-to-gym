@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Exercise } from '@/types';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { ExerciseVideo } from './ExerciseVideo';
+import { LegendList } from '@legendapp/list';
 
 interface ExercisesListProps {
   exercises: Exercise[];
@@ -20,28 +21,34 @@ export function ExercisesList({
   const colors = useThemeColor();
   const styles = createStyles(colors);
 
+
   return (
     <View style={styles.exercisesSection}>
       <Text style={styles.sectionTitle}>Exercises</Text>
-      {exercises.map((exercise, index) => {
-        const isCompleted = completedExercises.has(exercise.id);
-        return (
-          <ExerciseVideo
-            key={exercise.id}
-            exercise={{ ...exercise, workoutId } as any}
-            index={index}
-            isCompleted={isCompleted}
-            onToggle={onToggleExercise}
-          />
-        );
-      })}
+      <LegendList
+        data={exercises}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        extraData={completedExercises.size}
+        renderItem={({ item, index }) => {
+          const isCompleted = completedExercises.has(item.id);
+          return (
+            <ExerciseVideo
+              exercise={{ ...item, workoutId } as any}
+              index={index}
+              isCompleted={isCompleted}
+              onToggle={onToggleExercise}
+            />
+          );
+        }}
+      />
     </View>
+
   );
 }
 
 const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
   exercisesSection: {
-    marginBottom: 100,
     paddingHorizontal: 12,
   },
   sectionTitle: {

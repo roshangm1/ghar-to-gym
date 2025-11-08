@@ -23,6 +23,72 @@ interface ExerciseVideoProps {
   onToggle: (exerciseId: string) => void;
 }
 
+const VideoWithInstructions = ({ videoUrl, index, workoutId, instructions }: { videoUrl: string, index: number, workoutId: string, instructions: string[] }) => {
+
+  const colors = useThemeColor();
+  const playerRef = useRef<VideoView>(null);
+
+  const player = useVideoPlayer(videoUrl || '', (player) => {
+    player.loop = false;
+    player.muted = false;
+  });
+
+  const estimatedVideoHeight = SCREEN_WIDTH * 1.78; // Rough estimate for 9:16 portrait
+  const extraHeight = estimatedVideoHeight - CONTAINER_HEIGHT;
+  const videoOffset = -(extraHeight * 0.40); // Negative = shift down to show bottom
+
+  useEvent(player, 'playingChange', { isPlaying: player.playing });
+  const styles = createStyles(colors, videoOffset);
+  return (
+    <>
+    {videoUrl && (
+        <TouchableOpacity
+          style={styles.videoContainer}
+          onPress={() => {
+            // Pause the current video
+            player.pause();
+            // Navigate to video reels screen
+            if (workoutId) {
+              router.push({
+                pathname: '/workout/[id]/videos',
+                params: {
+                  id: workoutId,
+                  workoutId,
+                  initialIndex: index.toString(),
+                },
+              });
+            }
+          }}
+          activeOpacity={0.9}
+        >
+          <View style={styles.videoWrapper}>
+            <VideoView
+              ref={playerRef}
+              player={player}
+              style={styles.video}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          </View>
+          <View style={styles.playOverlay}>
+            <Text style={styles.playIcon}>▶</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      <View style={styles.instructionsContainer}>
+        {instructions.map((instruction: string, i: number) => (
+          <View key={i} style={styles.instructionItem}>
+            <Text style={styles.instructionBullet}>•</Text>
+            <Text style={styles.instructionText}>{instruction}</Text>
+          </View>
+        ))}
+      </View>
+    </>
+  )
+
+}
+
 export function ExerciseVideo({
   exercise,
   index,
@@ -30,49 +96,7 @@ export function ExerciseVideo({
   onToggle,
 }: ExerciseVideoProps) {
   const colors = useThemeColor();
-  const playerRef = useRef<VideoView>(null);
-
-  const player = useVideoPlayer(exercise.videoUrl || '', (player) => {
-    player.loop = false;
-    player.muted = false;
-  });
-
-  useEvent(player, 'playingChange', { isPlaying: player.playing });
-
-  // For portrait videos with cover mode, calculate offset to show bottom part
-  // Portrait videos (9:16) when scaled to cover width become much taller
-  // We shift the video down to show the bottom portion where the person is
-  // Estimate: For 9:16 portrait, height ≈ width * 1.78 when covering width
-  // Shift down by ~35% of extra height to show bottom part
-  const estimatedVideoHeight = SCREEN_WIDTH * 1.78; // Rough estimate for 9:16 portrait
-  const extraHeight = estimatedVideoHeight - CONTAINER_HEIGHT;
-  const videoOffset = -(extraHeight * 0.40); // Negative = shift down to show bottom
-
-  const videoStyles = StyleSheet.create({
-    videoContainer: {
-      width: '100%',
-      height: CONTAINER_HEIGHT,
-      backgroundColor: '#000',
-      borderRadius: 12,
-      overflow: 'hidden',
-      marginBottom: 12,
-      position: 'relative',
-    },
-    videoWrapper: {
-      width: '100%',
-      height: '100%',
-      overflow: 'hidden',
-    },
-    video: {
-      width: '100%',
-      // Make video taller to allow for translation
-      // For portrait videos with cover mode, the video will be scaled
-      // to fill the width, making it taller than the container
-      height: '200%', // Make it 200% height to have room for translation
-      transform: [{ translateY: videoOffset }], // Shift video down to show bottom part
-    },
-  });
-
+  
   const styles = createStyles(colors);
 
   return (
@@ -105,56 +129,13 @@ export function ExerciseVideo({
           )}
         </TouchableOpacity>
       </View>
-
-      {exercise.videoUrl && (
-        <TouchableOpacity
-          style={videoStyles.videoContainer}
-          onPress={() => {
-            // Pause the current video
-            player.pause();
-            // Navigate to video reels screen
-            const workoutId = (exercise as any).workoutId;
-            if (workoutId) {
-              router.push({
-                pathname: '/workout/[id]/videos',
-                params: {
-                  id: workoutId,
-                  workoutId,
-                  initialIndex: index.toString(),
-                },
-              });
-            }
-          }}
-          activeOpacity={0.9}
-        >
-          <View style={videoStyles.videoWrapper}>
-            <VideoView
-              ref={playerRef}
-              player={player}
-              style={videoStyles.video}
-              contentFit="cover"
-              nativeControls={false}
-            />
-          </View>
-          <View style={styles.playOverlay}>
-            <Text style={styles.playIcon}>▶</Text>
-          </View>
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.instructionsContainer}>
-        {exercise.instructions.map((instruction: string, i: number) => (
-          <View key={i} style={styles.instructionItem}>
-            <Text style={styles.instructionBullet}>•</Text>
-            <Text style={styles.instructionText}>{instruction}</Text>
-          </View>
-        ))}
-      </View>
+      <VideoWithInstructions workoutId={exercise.workoutId} videoUrl={exercise.videoUrl || ''} index={index} instructions={exercise.instructions} />
+      
     </View>
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useThemeColor>, videoOffset?: number) => StyleSheet.create({
   exerciseCard: {
     backgroundColor: colors.background,
     borderRadius: 12,
@@ -239,6 +220,28 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     fontSize: 48,
     color: '#fff',
     opacity: 0.9,
+  },
+  videoContainer: {
+    width: '100%',
+    height: CONTAINER_HEIGHT,
+    backgroundColor: '#000',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  videoWrapper: {
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  },
+  video: {
+    width: '100%',
+    // Make video taller to allow for translation
+    // For portrait videos with cover mode, the video will be scaled
+    // to fill the width, making it taller than the container
+    height: '200%', // Make it 200% height to have room for translation
+    transform: [{ translateY: videoOffset || 0 }], // Shift video down to show bottom part
   },
 });
 
