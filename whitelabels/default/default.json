@@ -1,5 +1,5 @@
 {
-  "name": "Ghar-to-Gym MVP",
+  "name": "Ghar Fit",
   "slug": "ghar-to-gym-mvp",
   "version": "1.0.0",
   "scheme": "rork-app",
@@ -8,8 +8,8 @@
   "routerOrigin": "https://rork.com/",
   "instantDbAppId": "f69eae61-f5b0-4a15-b7ba-dffea0fa17fa",
   "bundleIdentifier": {
-    "ios": "app.rork.ghar-to-gym-mvp",
-    "android": "app.rork.ghar_to_gym_mvp"
+    "ios": "app.brainants.gharfit",
+    "android": "app.brainants.gharfit"
   },
   "colors": {
     "light": {
@@ -60,4 +60,3 @@
     "favicon": "./assets/images/favicon.png"
   }
 }
-
