@@ -7,11 +7,11 @@
         "start-web": "bunx rork start -p c6kjrob436u473fx4t5e4 --web ",
         "start-web-dev": "DEBUG=expo* bunx rork start -p c6kjrob436u473fx4t5e4 --web",
         "lint": "expo lint",
-        "prebuild": "node whitelabels/scripts/prebuild.js",
         "whitelabel:switch": "node whitelabels/scripts/switch-whitelabel.js switch",
         "whitelabel:apply": "node whitelabels/scripts/switch-whitelabel.js apply",
         "whitelabel:list": "node whitelabels/scripts/switch-whitelabel.js list",
-        "whitelabel:current": "node whitelabels/scripts/switch-whitelabel.js current"
+        "whitelabel:current": "node whitelabels/scripts/switch-whitelabel.js current",
+        "eas-build-pre-install": "node whitelabels/scripts/prebuild.js"
     },
     "dependencies": {
         "@expo/vector-icons": "^15.0.3",
