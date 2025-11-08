@@ -35,3 +35,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 .vercel
+
+# White-label generated files
+whitelabel-config.json

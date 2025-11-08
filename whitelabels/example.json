@@ -1,0 +1,56 @@
+{
+  "name": "Example Fitness App",
+  "slug": "example-fitness-app",
+  "version": "1.0.0",
+  "scheme": "example-app",
+  "owner": "example-owner",
+  "easProjectId": "your-eas-project-id-here",
+  "routerOrigin": "https://example.com/",
+  "instantDbAppId": "your-instantdb-app-id-here",
+  "bundleIdentifier": {
+    "ios": "com.example.fitness",
+    "android": "com.example.fitness"
+  },
+  "colors": {
+    "light": {
+      "text": "#1F2937",
+      "textSecondary": "#6B7280",
+      "background": "#FFFFFF",
+      "backgroundSecondary": "#F9FAFB",
+      "tint": "#3B82F6",
+      "primary": "#3B82F6",
+      "secondary": "#8B5CF6",
+      "accent": "#10B981",
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "tabIconDefault": "#9CA3AF",
+      "tabIconSelected": "#3B82F6",
+      "card": "#FFFFFF",
+      "border": "#E5E7EB",
+      "shadow": "#00000015"
+    },
+    "dark": {
+      "text": "#F9FAFB",
+      "textSecondary": "#9CA3AF",
+      "background": "#111827",
+      "backgroundSecondary": "#1F2937",
+      "tint": "#60A5FA",
+      "primary": "#60A5FA",
+      "secondary": "#A78BFA",
+      "accent": "#34D399",
+      "success": "#34D399",
+      "warning": "#FBBF24",
+      "error": "#F87171",
+      "tabIconDefault": "#6B7280",
+      "tabIconSelected": "#60A5FA",
+      "card": "#1F2937",
+      "border": "#374151",
+      "shadow": "#00000040"
+    }
+  },
+  "branding": {
+    "welcomeTitle": "Welcome to Example Fitness",
+    "splashBackgroundColor": "#ffffff"
+  }
+}

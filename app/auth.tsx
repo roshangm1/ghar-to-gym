@@ -15,11 +15,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/useAuth';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { router } from 'expo-router';
+import { getWhiteLabelConfig } from '@/lib/whitelabel-runtime';
 
 export default function AuthScreen() {
   const colors = useThemeColor();
   const insets = useSafeAreaInsets();
   const { sendCode, verifyCode, pendingEmail, isLoading, logout } = useAuth();
+  const whiteLabelConfig = getWhiteLabelConfig();
   
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -95,7 +97,7 @@ export default function AuthScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome to Ghar-to-Gym</Text>
+          <Text style={styles.title}>{whiteLabelConfig.branding.welcomeTitle}</Text>
           <Text style={styles.subtitle}>
             {step === 'login'
               ? 'Enter your email to get started'

@@ -1,0 +1,57 @@
+{
+  "name": "Ghar-to-Gym MVP",
+  "slug": "ghar-to-gym-mvp",
+  "version": "1.0.0",
+  "scheme": "rork-app",
+  "owner": "roshangm1",
+  "easProjectId": "b98e1f9c-7583-47ca-a9c3-ab426ebe058d",
+  "routerOrigin": "https://rork.com/",
+  "instantDbAppId": "f69eae61-f5b0-4a15-b7ba-dffea0fa17fa",
+  "bundleIdentifier": {
+    "ios": "app.rork.ghar-to-gym-mvp",
+    "android": "app.rork.ghar_to_gym_mvp"
+  },
+  "colors": {
+    "light": {
+      "text": "#1F2937",
+      "textSecondary": "#6B7280",
+      "background": "#FFFFFF",
+      "backgroundSecondary": "#F9FAFB",
+      "tint": "#DC143C",
+      "primary": "#DC143C",
+      "secondary": "#1E3A8A",
+      "accent": "#F59E0B",
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "tabIconDefault": "#9CA3AF",
+      "tabIconSelected": "#DC143C",
+      "card": "#FFFFFF",
+      "border": "#E5E7EB",
+      "shadow": "#00000015"
+    },
+    "dark": {
+      "text": "#F9FAFB",
+      "textSecondary": "#9CA3AF",
+      "background": "#111827",
+      "backgroundSecondary": "#1F2937",
+      "tint": "#FF4757",
+      "primary": "#FF4757",
+      "secondary": "#3B82F6",
+      "accent": "#FBBF24",
+      "success": "#34D399",
+      "warning": "#FBBF24",
+      "error": "#F87171",
+      "tabIconDefault": "#6B7280",
+      "tabIconSelected": "#FF4757",
+      "card": "#1F2937",
+      "border": "#374151",
+      "shadow": "#00000040"
+    }
+  },
+  "branding": {
+    "welcomeTitle": "Welcome to Ghar-to-Gym",
+    "splashBackgroundColor": "#ffffff"
+  }
+}
+

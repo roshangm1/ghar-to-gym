@@ -6,7 +6,11 @@
         "start": "bunx expo start",
         "start-web": "bunx rork start -p c6kjrob436u473fx4t5e4 --web ",
         "start-web-dev": "DEBUG=expo* bunx rork start -p c6kjrob436u473fx4t5e4 --web",
-        "lint": "expo lint"
+        "lint": "expo lint",
+        "whitelabel:switch": "node scripts/switch-whitelabel.js switch",
+        "whitelabel:apply": "node scripts/switch-whitelabel.js apply",
+        "whitelabel:list": "node scripts/switch-whitelabel.js list",
+        "whitelabel:current": "node scripts/switch-whitelabel.js current"
     },
     "dependencies": {
         "@expo/vector-icons": "^15.0.3",
