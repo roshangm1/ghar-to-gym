@@ -66,7 +66,6 @@ export default function ProfileScreen() {
               { bullet: '💾', text: 'Sync across all devices' },
             ]}
           />
-          {/* <SeedButton /> */}
         </ScrollView>
       </View>
     );

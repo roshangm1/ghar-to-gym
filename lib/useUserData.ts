@@ -1,5 +1,5 @@
 import { db, id } from './instant';
-import { UserProfile, WorkoutLog, Achievement } from '@/types';
+import { UserProfile, WorkoutLog } from '@/types';
 import { createWorkoutPost, createAchievementPost } from './useSocialFeed';
 
 export function useUserProfile() {
@@ -119,14 +119,16 @@ export async function updateUserProfile(
       },
     });
 
-    if (data?.users && data.users.length > 0) {
-      await db.transact([
-        db.tx.users[userId].update({
-          ...updates,
-          updatedAt: Date.now(),
-        }),
-      ]);
+    if (!data?.users || data.users.length === 0) {
+      throw new Error('User profile not found. Please try logging out and back in.');
     }
+
+    await db.transact([
+      db.tx.users[userId].update({
+        ...updates,
+        updatedAt: Date.now(),
+      }),
+    ]);
   } catch (error) {
     console.error('Error updating user:', error);
     throw error;

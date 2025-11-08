@@ -22,7 +22,7 @@ export interface Workout {
     imageUrl?: string;
   }
   
-  export type WorkoutCategory = 'strength' | 'cardio' | 'flexibility' | 'cultural';
+  export type WorkoutCategory = 'strength' | 'cardio' | 'flexibility' | 'cultural' | 'yoga' | 'mindfulness';
   
   export interface NutritionTip {
     id: string;

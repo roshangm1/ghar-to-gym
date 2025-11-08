@@ -1,10 +1,11 @@
-import { LogOut } from 'lucide-react-native';
+import { LogOut, Edit2 } from 'lucide-react-native';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { UserProfile } from '@/types';
 import { useAuth } from '@/lib/useAuth';
+import { router } from 'expo-router';
 
 interface ProfileHeaderProps {
   name: string;
@@ -17,6 +18,10 @@ export function ProfileHeader({ name, avatar, email }: ProfileHeaderProps) {
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
   const { logout } = useAuth();
+
+  const handleEditProfile = () => {
+    router.push('/profile/edit');
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -57,6 +62,14 @@ export function ProfileHeader({ name, avatar, email }: ProfileHeaderProps) {
       </View>
       <View style={styles.profileActions}>
         <TouchableOpacity
+          style={styles.editButton}
+          onPress={handleEditProfile}
+          activeOpacity={0.8}
+        >
+          <Edit2 size={18} color={colors.primary} />
+          <Text style={styles.editButtonText}>Edit Profile</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
           activeOpacity={0.8}
@@ -93,6 +106,24 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
   },
   profileActions: {
     marginTop: 16,
+    gap: 12,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  editButtonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: colors.primary,
   },
   logoutButton: {
     flexDirection: 'row',

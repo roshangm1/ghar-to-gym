@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useApp } from '@/contexts/AppContext';
 import { useWorkout } from '@/lib/useWorkouts';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -18,7 +19,6 @@ import {
   WorkoutDescription,
   ExerciseMeta,
   EquipmentSection,
-  StartWorkoutSection,
   ExercisesList,
   WorkoutFooter,
 } from '@/components/workout';
@@ -229,16 +229,28 @@ export default function WorkoutDetailScreen() {
           totalExercises={workout.exercises.length}
         />
         <EquipmentSection equipment={workout.equipment} />
-        {isWorkoutStarted ? (
-          <ExercisesList
-            exercises={workout.exercises}
-            completedExercises={completedExercises}
-            onToggleExercise={toggleExercise}
-            workoutId={workout.id}
-          />
-        ) : (
-          <StartWorkoutSection isWorkoutCompleted={isWorkoutCompleted} />
-        )}
+        <View style={styles.exercisesContainer}>
+          <View 
+            style={[styles.exercisesContent, !isWorkoutStarted && styles.exercisesContentBlurred]}
+            pointerEvents={!isWorkoutStarted ? 'none' : 'auto'}
+          >
+            <ExercisesList
+              exercises={workout.exercises}
+              completedExercises={completedExercises}
+              onToggleExercise={toggleExercise}
+              workoutId={workout.id}
+            />
+          </View>
+          {!isWorkoutStarted && (
+            <View style={styles.blurOverlay}>
+              <BlurView
+                intensity={10}
+                style={StyleSheet.absoluteFill}
+                tint="dark"
+              />
+            </View>
+          )}
+        </View>
       </ScrollView>
       <WorkoutFooter
         isWorkoutCompleted={isWorkoutCompleted}
@@ -256,5 +268,22 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
   container: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
+  },
+  exercisesContainer: {
+    position: 'relative',
+  },
+  exercisesContent: {
+    opacity: 1,
+  },
+  exercisesContentBlurred: {
+    opacity: 0.6,
+  },
+  blurOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
   },
 });

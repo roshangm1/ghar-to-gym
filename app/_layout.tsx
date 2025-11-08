@@ -115,6 +115,14 @@ function RootLayoutNav() {
             headerShown: false,
           }}
         />
+        <Stack.Screen 
+          name="profile/edit"
+          options={{
+            presentation: "card",
+            // headerShown: false,
+            title: "Edit Profile",
+          }}
+        />
       </Stack>
       </KeyboardProvider>
       </ThemeProvider>

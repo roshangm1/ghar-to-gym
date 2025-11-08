@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { UserProfile, WorkoutLog, AchievementPreferences, SocialPost } from '@/types';
 import { db } from '@/lib/instant';
 import { useAuth } from '@/lib/useAuth';
-import { useUserProfile, useUserWorkoutLogs, useUserAchievements, logWorkoutToDB, updateCustomMetric as updateCustomMetricDB } from '@/lib/useUserData';
+import { useUserProfile, useUserWorkoutLogs, useUserAchievements, logWorkoutToDB, updateCustomMetric as updateCustomMetricDB, updateUserProfile } from '@/lib/useUserData';
 
 const DEFAULT_PROFILE: UserProfile = {
   id: 'user1',
@@ -163,9 +163,38 @@ export const [AppProvider, useApp] = createContextHook(() => {
     target: number,
     unit: 'kg' | 'lbs'
   ) => {
+    if (isAuthenticated && dbUserId) {
+      // Update weight in customMetrics
+      const customMetrics = profile.customMetrics || {};
+      await updateUserProfile(dbUserId, {
+        customMetrics: {
+          ...customMetrics,
+          weight: { current, target, unit },
+        },
+      });
+      return;
+    }
     const updatedProfile = {
       ...profile,
       weight: { current, target, unit },
+    };
+    await saveProfile(updatedProfile);
+  };
+
+  const updateProfile = async (updates: {
+    name?: string;
+    email?: string;
+    avatar?: string;
+  }) => {
+    if (isAuthenticated && dbUserId) {
+      // Update profile in database
+      await updateUserProfile(dbUserId, updates);
+      return;
+    }
+    // For non-authenticated users, update local profile
+    const updatedProfile = {
+      ...profile,
+      ...updates,
     };
     await saveProfile(updatedProfile);
   };
@@ -275,6 +304,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     isLoading,
     isAuthenticated,
     saveProfile,
+    updateProfile,
     updateCustomMetric,
     updateWeight,
     logWorkout,
