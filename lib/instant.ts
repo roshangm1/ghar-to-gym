@@ -104,6 +104,14 @@ const schema = i.schema({
       data: i.json().optional(), // Additional post data
       createdAt: i.number(),
     }),
+    comments: i.entity({
+      postId: i.string(), // Reference to socialPosts.id
+      userId: i.string(),
+      userName: i.string(),
+      userAvatar: i.string().optional(),
+      content: i.string(),
+      createdAt: i.number(),
+    }),
     // User workout instances - tracks individual user progress through a workout
     // Multiple instances allowed per user per workout (one per day/session)
     userWorkouts: i.entity({
@@ -169,6 +177,32 @@ const schema = i.schema({
       },
       reverse: {
         on: 'socialPosts',
+        has: 'one',
+        label: 'user',
+      },
+    },
+    // Link socialPosts to comments
+    postComments: {
+      forward: {
+        on: 'socialPosts',
+        has: 'many',
+        label: 'comments',
+      },
+      reverse: {
+        on: 'comments',
+        has: 'one',
+        label: 'post',
+      },
+    },
+    // Link users to comments
+    userComments: {
+      forward: {
+        on: 'users',
+        has: 'many',
+        label: 'comments',
+      },
+      reverse: {
+        on: 'comments',
         has: 'one',
         label: 'user',
       },

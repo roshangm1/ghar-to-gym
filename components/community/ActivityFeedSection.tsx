@@ -16,7 +16,7 @@ export function ActivityFeedSection({
   posts, 
   isLoading, 
   currentUserId, 
-  onLike 
+  onLike,
 }: ActivityFeedSectionProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);

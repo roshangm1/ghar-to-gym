@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Heart, MessageCircle, Clock } from 'lucide-react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { SocialPost } from '@/types';
@@ -17,10 +18,15 @@ export function PostCard({
   isCurrentUser, 
   onLike, 
   formatTimeAgo, 
-  getPostIcon 
+  getPostIcon,
 }: PostCardProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
+  const router = useRouter();
+
+  const handleOpenComments = () => {
+    router.push(`/post/${post.id}/comments`);
+  };
 
   return (
     <View style={styles.postCard}>
@@ -71,7 +77,11 @@ export function PostCard({
             {post.likes}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.actionButton} 
+          activeOpacity={0.7}
+          onPress={handleOpenComments}
+        >
           <MessageCircle size={18} color={colors.textSecondary} />
           <Text style={styles.actionText}>{post.comments}</Text>
         </TouchableOpacity>

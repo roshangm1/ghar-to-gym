@@ -1,5 +1,5 @@
 import { db, id } from './instant';
-import { SocialPost } from '@/types';
+import { SocialPost, Comment } from '@/types';
 
 /**
  * Hook to fetch all social posts from InstantDB
@@ -223,5 +223,185 @@ export async function createChallengePost(
     { icon },
     userAvatar
   );
+}
+
+/**
+ * Hook to fetch comments for a specific post
+ * Comments are sorted by creation date (oldest first)
+ * Returns empty array if postId is empty
+ */
+export function useComments(postId: string) {
+  const { data, isLoading } = db.useQuery(
+    postId
+      ? {
+          comments: {
+            $: {
+              where: { postId },
+            },
+          },
+        }
+      : { comments: {} }
+  );
+
+  // If postId is empty, return empty array
+  if (!postId) {
+    return {
+      comments: [],
+      isLoading: false,
+    };
+  }
+
+  const comments: Comment[] = (data?.comments || [])
+    .map((comment: any) => ({
+      id: comment.id,
+      postId: comment.postId,
+      userId: comment.userId,
+      userName: comment.userName,
+      userAvatar: comment.userAvatar,
+      content: comment.content,
+      timestamp: new Date(comment.createdAt).toISOString(),
+    }))
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  return {
+    comments,
+    isLoading,
+  };
+}
+
+/**
+ * Create a comment on a social post
+ */
+export async function createComment(
+  postId: string,
+  userId: string,
+  userName: string,
+  content: string,
+  userAvatar?: string
+): Promise<string> {
+  try {
+    if (!userId) {
+      throw new Error('User must be logged in to comment');
+    }
+
+    if (!content.trim()) {
+      throw new Error('Comment cannot be empty');
+    }
+
+    // Get current post to update comment count
+    const { data } = await db.queryOnce({
+      socialPosts: {
+        $: {
+          where: { id: postId as any },
+        },
+      },
+    });
+
+    const post = data?.socialPosts?.[0];
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    // Use the actual post entity ID from the query result
+    const postEntityId = post.id;
+    const currentComments = post.comments || 0;
+    const commentId = id();
+
+    // Check if user exists in users table before linking
+    const { data: userData } = await db.queryOnce({
+      users: {
+        $: {
+          where: { id: userId as any },
+        },
+      },
+    });
+
+    const userExists = userData?.users && userData.users.length > 0;
+
+    // Build transaction array
+    const transactions: any[] = [
+      // Create the comment
+      db.tx.comments[commentId].update({
+        postId: postEntityId,
+        userId,
+        userName,
+        userAvatar: userAvatar || null,
+        content: content.trim(),
+        createdAt: Date.now(),
+      }),
+      // Link comment to post (use entity ID)
+      db.tx.socialPosts[postEntityId].link({ comments: commentId }),
+      // Update comment count on post (use entity ID)
+      db.tx.socialPosts[postEntityId].update({
+        comments: currentComments + 1,
+      }),
+    ];
+
+    // Only link to user if user exists in users table
+    if (userExists) {
+      transactions.push(db.tx.users[userId].link({ comments: commentId }));
+    }
+
+    await db.transact(transactions);
+
+    return commentId;
+  } catch (error) {
+    console.error('Error creating comment:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a comment
+ */
+export async function deleteComment(commentId: string, userId: string): Promise<void> {
+  try {
+    if (!userId) {
+      throw new Error('User must be logged in to delete comments');
+    }
+
+    // Get the comment to verify ownership and get postId
+    const { data } = await db.queryOnce({
+      comments: {
+        $: {
+          where: { id: commentId as any },
+        },
+      },
+    });
+
+    const comment = data?.comments?.[0];
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
+
+    // Only allow users to delete their own comments
+    if (comment.userId !== userId) {
+      throw new Error('You can only delete your own comments');
+    }
+
+    // Get the post to update comment count
+    const { data: postData } = await db.queryOnce({
+      socialPosts: {
+        $: {
+          where: { id: comment.postId as any },
+        },
+      },
+    });
+
+    const post = postData?.socialPosts?.[0];
+    const currentComments = post?.comments || 0;
+
+    await db.transact([
+      // Delete the comment
+      db.tx.comments[commentId].delete(),
+      // Update comment count on post
+      db.tx.socialPosts[comment.postId].update({
+        comments: Math.max(0, currentComments - 1),
+      }),
+    ]);
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    throw error;
+  }
 }
 

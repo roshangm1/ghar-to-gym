@@ -131,6 +131,16 @@ export interface UserProfile {
       icon?: string;
     };
   }
+
+  export interface Comment {
+    id: string;
+    postId: string;
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+    content: string;
+    timestamp: string;
+  }
   
 export interface FitnessProgram {
   id: string;

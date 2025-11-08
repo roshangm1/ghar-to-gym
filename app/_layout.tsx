@@ -108,6 +108,13 @@ function RootLayoutNav() {
             headerShown: false,
           }}
         />
+        <Stack.Screen 
+          name="post/[id]/comments"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
+        />
       </Stack>
       </KeyboardProvider>
       </ThemeProvider>

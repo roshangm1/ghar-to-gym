@@ -58,7 +58,8 @@
         "eslint": "^9.31.0",
         "eslint-config-expo": "~10.0.0",
         "eslint-plugin-react-compiler": "^19.1.0-rc.2",
-        "typescript": "~5.9.2"
+        "typescript": "~5.9.2",
+        "hot-updater": "^0.21.7"
     },
     "private": true
 }
