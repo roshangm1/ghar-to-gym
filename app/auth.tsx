@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/useAuth';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { router } from 'expo-router';
-import { getWhiteLabelConfig } from '@/lib/whitelabel-runtime';
+import { getWhiteLabelConfig } from '@/whitelabels/lib/whitelabel-runtime';
 
 export default function AuthScreen() {
   const colors = useThemeColor();

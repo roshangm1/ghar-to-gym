@@ -52,5 +52,11 @@
   "branding": {
     "welcomeTitle": "Welcome to Example Fitness",
     "splashBackgroundColor": "#ffffff"
+  },
+  "icons": {
+    "icon": "./assets/images/icon.png",
+    "splash": "./assets/images/splash-icon.png",
+    "adaptiveIcon": "./assets/images/adaptive-icon.png",
+    "favicon": "./assets/images/favicon.png"
   }
 }

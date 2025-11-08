@@ -21,12 +21,12 @@ npm run whitelabel:current
 
 ## Creating a New White-Label
 
-1. **Copy the example template:**
+1. **Copy the example directory:**
    ```bash
-   cp whitelabels/example.json whitelabels/my-brand.json
+   cp -r whitelabels/example whitelabels/my-brand
    ```
 
-2. **Edit the configuration file** (`whitelabels/my-brand.json`):
+2. **Edit the configuration file** (`whitelabels/my-brand/my-brand.json`):
    - Update `name`, `slug`, `scheme`
    - Set your `instantDbAppId` (get from https://instantdb.com/dash)
    - Customize `colors` for light and dark themes
@@ -34,13 +34,19 @@ npm run whitelabel:current
    - Set `easProjectId` if using EAS Build
    - Update `routerOrigin` if needed
    - Customize `branding.welcomeTitle` and other branding text
+   - Update `icons` paths if using custom icons
 
-3. **Apply the white-label:**
+3. **(Optional) Add custom icons:**
+   - Create an `icons` directory: `whitelabels/my-brand/icons/`
+   - Place your icons: `icon.png`, `splash-icon.png`, `adaptive-icon.png`, `favicon.png`
+   - See `whitelabels/default/icons/README.md` for icon specifications
+
+4. **Apply the white-label:**
    ```bash
    npm run whitelabel:apply my-brand
    ```
 
-4. **Restart your development server** for changes to take effect.
+5. **Restart your development server** for changes to take effect.
 
 ## What Gets Customized
 
@@ -48,18 +54,20 @@ When you switch white-labels, the following are automatically updated:
 
 - ✅ **App Name & Branding** - Display name, slug, bundle identifiers
 - ✅ **Colors & Themes** - Light and dark theme colors
+- ✅ **App Icons** - Custom icons (icon, splash, adaptive icon, favicon)
 - ✅ **InstantDB Instance** - Different database instance per white-label
 - ✅ **App Configuration** - Scheme, owner, EAS project ID, router origin
 - ✅ **Welcome Messages** - Branding text in the auth screen
 
 ## Generated Files
 
-The following files are auto-generated when you switch white-labels:
+When you switch white-labels, the script:
 
-- `app.json` - Expo app configuration
-- `constants/colors.ts` - Color constants
-- `lib/instant.ts` - InstantDB configuration
-- `whitelabel-config.json` - Runtime config (for app access)
+1. **Copies icons** from `whitelabels/<name>/icons/` to `assets/images/` (if they exist)
+2. **Generates `app.json`** - Expo app configuration
+3. **Generates `constants/colors.ts`** - Color constants
+4. **Generates `lib/instant.ts`** - InstantDB configuration
+5. **Generates `whitelabels/config.json`** - Runtime config (for app access)
 
 ⚠️ **Do not edit these files manually** - they will be overwritten when you switch white-labels.
 
@@ -68,7 +76,7 @@ The following files are auto-generated when you switch white-labels:
 Access white-label config in your React Native code:
 
 ```typescript
-import { getWhiteLabelConfig } from '@/lib/whitelabel-runtime';
+import { getWhiteLabelConfig } from '@/whitelabels/lib/whitelabel-runtime';
 
 const config = getWhiteLabelConfig();
 console.log(config.branding.welcomeTitle);

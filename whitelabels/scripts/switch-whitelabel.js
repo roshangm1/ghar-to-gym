@@ -17,19 +17,51 @@ function getActiveWhiteLabel() {
 
 function getAvailableWhiteLabels() {
   try {
+    const whiteLabels = [];
     const files = fs.readdirSync(WHITELABELS_DIR);
-    return files
-      .filter(file => file.endsWith('.json') && file !== '.active')
-      .map(file => file.replace('.json', ''));
+    
+    // Check for config files in subdirectories (e.g., default/default.json, example/example.json)
+    for (const file of files) {
+      const filePath = path.join(WHITELABELS_DIR, file);
+      const stat = fs.statSync(filePath);
+      
+      if (stat.isDirectory() && file !== 'lib' && file !== 'scripts') {
+        const configPath = path.join(filePath, `${file}.json`);
+        if (fs.existsSync(configPath)) {
+          whiteLabels.push(file);
+        }
+      } else if (stat.isFile() && file.endsWith('.json') && file !== '.active' && file !== 'config.json') {
+        // Legacy support: config files directly in whitelabels/ directory
+        whiteLabels.push(file.replace('.json', ''));
+      }
+    }
+    
+    return whiteLabels.length > 0 ? whiteLabels : ['default'];
   } catch {
     return ['default'];
   }
 }
 
-function setActiveWhiteLabel(name) {
-  const configPath = path.join(WHITELABELS_DIR, `${name}.json`);
+function getConfigPath(name) {
+  // First check in subdirectory (e.g., default/default.json)
+  const subdirPath = path.join(WHITELABELS_DIR, name, `${name}.json`);
+  if (fs.existsSync(subdirPath)) {
+    return subdirPath;
+  }
   
-  if (!fs.existsSync(configPath)) {
+  // Fallback to legacy location (e.g., default.json)
+  const legacyPath = path.join(WHITELABELS_DIR, `${name}.json`);
+  if (fs.existsSync(legacyPath)) {
+    return legacyPath;
+  }
+  
+  return null;
+}
+
+function setActiveWhiteLabel(name) {
+  const configPath = getConfigPath(name);
+  
+  if (!configPath) {
     console.error(`❌ White-label config "${name}" does not exist`);
     process.exit(1);
   }
@@ -39,7 +71,12 @@ function setActiveWhiteLabel(name) {
 }
 
 function loadWhiteLabelConfig(name) {
-  const configPath = path.join(WHITELABELS_DIR, `${name}.json`);
+  const configPath = getConfigPath(name);
+  
+  if (!configPath) {
+    throw new Error(`White-label config "${name}" does not exist`);
+  }
+  
   try {
     const configContent = fs.readFileSync(configPath, 'utf-8');
     return JSON.parse(configContent);
@@ -49,18 +86,25 @@ function loadWhiteLabelConfig(name) {
 }
 
 function generateAppJson(config) {
+  const icons = config.icons || {
+    icon: "./assets/images/icon.png",
+    splash: "./assets/images/splash-icon.png",
+    adaptiveIcon: "./assets/images/adaptive-icon.png",
+    favicon: "./assets/images/favicon.png"
+  };
+
   return {
     expo: {
       name: config.name,
       slug: config.slug,
       version: config.version,
       orientation: "portrait",
-      icon: "./assets/images/icon.png",
+      icon: icons.icon,
       scheme: config.scheme,
       userInterfaceStyle: "automatic",
       newArchEnabled: true,
       splash: {
-        image: "./assets/images/splash-icon.png",
+        image: icons.splash,
         resizeMode: "contain",
         backgroundColor: config.branding.splashBackgroundColor
       },
@@ -70,13 +114,13 @@ function generateAppJson(config) {
       },
       android: {
         adaptiveIcon: {
-          foregroundImage: "./assets/images/adaptive-icon.png",
+          foregroundImage: icons.adaptiveIcon,
           backgroundColor: config.branding.splashBackgroundColor
         },
         package: config.bundleIdentifier.android
       },
       web: {
-        favicon: "./assets/images/favicon.png"
+        favicon: icons.favicon
       },
       plugins: [
         [
@@ -363,10 +407,46 @@ export type Schema = typeof schema;
 `;
 }
 
+function copyIcons(whiteLabelName, config) {
+  const iconsDir = path.join(WHITELABELS_DIR, whiteLabelName, 'icons');
+  const targetDir = path.join(process.cwd(), 'assets', 'images');
+  
+  // Ensure target directory exists
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+  
+  // Check if white-label has its own icons directory
+  if (!fs.existsSync(iconsDir)) {
+    console.log('ℹ️  No custom icons directory found, using default icons');
+    return;
+  }
+  
+  const iconFiles = ['icon.png', 'splash-icon.png', 'adaptive-icon.png', 'favicon.png'];
+  let copiedCount = 0;
+  
+  iconFiles.forEach(file => {
+    const sourcePath = path.join(iconsDir, file);
+    const targetPath = path.join(targetDir, file);
+    
+    if (fs.existsSync(sourcePath)) {
+      fs.copyFileSync(sourcePath, targetPath);
+      copiedCount++;
+    }
+  });
+  
+  if (copiedCount > 0) {
+    console.log(`✅ Copied ${copiedCount} icon file(s) from white-label icons directory`);
+  }
+}
+
 function applyWhiteLabel(name) {
   console.log(`\n🔄 Applying white-label: ${name}`);
   
   const config = loadWhiteLabelConfig(name);
+  
+  // Copy icons from white-label directory if they exist
+  copyIcons(name, config);
   
   // Generate app.json
   const appJson = generateAppJson(config);
@@ -397,11 +477,11 @@ function applyWhiteLabel(name) {
   
   // Generate whitelabel-config.json for runtime access
   fs.writeFileSync(
-    path.join(process.cwd(), 'whitelabel-config.json'),
+    path.join(process.cwd(), 'whitelabels', 'config.json'),
     JSON.stringify(config, null, 2) + '\n',
     'utf-8'
   );
-  console.log('✅ Generated whitelabel-config.json');
+  console.log('✅ Generated whitelabels/config.json');
   
   // Set active white-label
   setActiveWhiteLabel(name);
@@ -419,7 +499,7 @@ if (!command || command === '--help' || command === '-h') {
 White-label Management Script
 
 Usage:
-  node scripts/switch-whitelabel.js <command> [options]
+  node whitelabels/scripts/switch-whitelabel.js <command> [options]
 
 Commands:
   switch <name>     Switch to a white-label configuration
@@ -428,10 +508,10 @@ Commands:
   apply <name>      Apply a white-label (generates files)
 
 Examples:
-  node scripts/switch-whitelabel.js switch default
-  node scripts/switch-whitelabel.js list
-  node scripts/switch-whitelabel.js current
-  node scripts/switch-whitelabel.js apply default
+  node whitelabels/scripts/switch-whitelabel.js switch default
+  node whitelabels/scripts/switch-whitelabel.js list
+  node whitelabels/scripts/switch-whitelabel.js current
+  node whitelabels/scripts/switch-whitelabel.js apply default
 `);
   process.exit(0);
 }

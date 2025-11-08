@@ -22,6 +22,12 @@ export interface WhiteLabelConfig {
     welcomeTitle: string;
     splashBackgroundColor: string;
   };
+  icons?: {
+    icon: string;
+    splash: string;
+    adaptiveIcon: string;
+    favicon: string;
+  };
 }
 
 const WHITELABELS_DIR = path.join(process.cwd(), 'whitelabels');
@@ -40,11 +46,34 @@ export function getActiveWhiteLabel(): string {
 }
 
 /**
+ * Get the config file path for a white-label
+ */
+function getConfigPath(name: string): string | null {
+  // First check in subdirectory (e.g., default/default.json)
+  const subdirPath = path.join(WHITELABELS_DIR, name, `${name}.json`);
+  if (fs.existsSync(subdirPath)) {
+    return subdirPath;
+  }
+  
+  // Fallback to legacy location (e.g., default.json)
+  const legacyPath = path.join(WHITELABELS_DIR, `${name}.json`);
+  if (fs.existsSync(legacyPath)) {
+    return legacyPath;
+  }
+  
+  return null;
+}
+
+/**
  * Load a white-label configuration
  */
 export function loadWhiteLabelConfig(name?: string): WhiteLabelConfig {
   const whiteLabelName = name || getActiveWhiteLabel();
-  const configPath = path.join(WHITELABELS_DIR, `${whiteLabelName}.json`);
+  const configPath = getConfigPath(whiteLabelName);
+  
+  if (!configPath) {
+    throw new Error(`White-label config "${whiteLabelName}" does not exist`);
+  }
   
   try {
     const configContent = fs.readFileSync(configPath, 'utf-8');
@@ -61,10 +90,26 @@ export function loadWhiteLabelConfig(name?: string): WhiteLabelConfig {
  */
 export function getAvailableWhiteLabels(): string[] {
   try {
+    const whiteLabels: string[] = [];
     const files = fs.readdirSync(WHITELABELS_DIR);
-    return files
-      .filter(file => file.endsWith('.json') && file !== '.active')
-      .map(file => file.replace('.json', ''));
+    
+    // Check for config files in subdirectories (e.g., default/default.json, example/example.json)
+    for (const file of files) {
+      const filePath = path.join(WHITELABELS_DIR, file);
+      const stat = fs.statSync(filePath);
+      
+      if (stat.isDirectory() && file !== 'lib' && file !== 'scripts') {
+        const configPath = path.join(filePath, `${file}.json`);
+        if (fs.existsSync(configPath)) {
+          whiteLabels.push(file);
+        }
+      } else if (stat.isFile() && file.endsWith('.json') && file !== '.active' && file !== 'config.json') {
+        // Legacy support: config files directly in whitelabels/ directory
+        whiteLabels.push(file.replace('.json', ''));
+      }
+    }
+    
+    return whiteLabels.length > 0 ? whiteLabels : ['default'];
   } catch {
     return ['default'];
   }
@@ -74,9 +119,9 @@ export function getAvailableWhiteLabels(): string[] {
  * Set the active white-label
  */
 export function setActiveWhiteLabel(name: string): void {
-  const configPath = path.join(WHITELABELS_DIR, `${name}.json`);
+  const configPath = getConfigPath(name);
   
-  if (!fs.existsSync(configPath)) {
+  if (!configPath) {
     throw new Error(`White-label config "${name}" does not exist`);
   }
   
