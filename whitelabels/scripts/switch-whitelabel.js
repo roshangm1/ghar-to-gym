@@ -9,9 +9,9 @@ const ACTIVE_FILE = path.join(WHITELABELS_DIR, '.active');
 
 function getActiveWhiteLabel() {
   try {
-    return fs.readFileSync(ACTIVE_FILE, 'utf-8').trim() || 'default';
+    return fs.readFileSync(ACTIVE_FILE, 'utf-8').trim() || 'gharfit';
   } catch {
-    return 'default';
+    return 'gharfit';
   }
 }
 
@@ -20,7 +20,6 @@ function getAvailableWhiteLabels() {
     const whiteLabels = [];
     const files = fs.readdirSync(WHITELABELS_DIR);
     
-    // Check for config files in subdirectories (e.g., default/default.json, example/example.json)
     for (const file of files) {
       const filePath = path.join(WHITELABELS_DIR, file);
       const stat = fs.statSync(filePath);
@@ -36,9 +35,9 @@ function getAvailableWhiteLabels() {
       }
     }
     
-    return whiteLabels.length > 0 ? whiteLabels : ['default'];
+    return whiteLabels.length > 0 ? whiteLabels : ['gharfit'];
   } catch {
-    return ['default'];
+    return ['gharfit'];
   }
 }
 
@@ -511,10 +510,10 @@ Commands:
   apply <name>      Apply a white-label (generates files)
 
 Examples:
-  node whitelabels/scripts/switch-whitelabel.js switch default
+  node whitelabels/scripts/switch-whitelabel.js switch gharfit
   node whitelabels/scripts/switch-whitelabel.js list
   node whitelabels/scripts/switch-whitelabel.js current
-  node whitelabels/scripts/switch-whitelabel.js apply default
+  node whitelabels/scripts/switch-whitelabel.js apply gharfit
 `);
   process.exit(0);
 }
