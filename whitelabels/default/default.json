@@ -2,14 +2,17 @@
   "name": "Ghar Fit",
   "slug": "ghar-to-gym-mvp",
   "version": "1.0.0",
-  "scheme": "rork-app",
+  "scheme": "gharfit",
   "owner": "roshangm1",
   "easProjectId": "b98e1f9c-7583-47ca-a9c3-ab426ebe058d",
-  "routerOrigin": "https://rork.com/",
+  "routerOrigin": "https://brainants.com/",
   "instantDbAppId": "f69eae61-f5b0-4a15-b7ba-dffea0fa17fa",
   "bundleIdentifier": {
     "ios": "app.brainants.gharfit",
     "android": "app.brainants.gharfit"
+  },
+  "infoPlist": {
+    "ITSAppUsesNonExemptEncryption": false
   },
   "colors": {
     "light": {

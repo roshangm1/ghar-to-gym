@@ -9,7 +9,10 @@
   "instantDbAppId": "your-instantdb-app-id-here",
   "bundleIdentifier": {
     "ios": "com.example.fitness",
-    "android": "com.example.fitness"
+    "android": "com.example.fitness",
+    "infoPlist": {
+      "ITSAppUsesNonExemptEncryption": false
+    }
   },
   "colors": {
     "light": {

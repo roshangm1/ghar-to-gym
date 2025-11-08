@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Ghar-to-Gym MVP",
+    "name": "Ghar Fit",
     "slug": "ghar-to-gym-mvp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
+    "scheme": "gharfit",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.ghar-to-gym-mvp",
+      "bundleIdentifier": "app.brainants.gharfit",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.ghar_to_gym_mvp"
+      "package": "app.brainants.gharfit"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -34,7 +34,7 @@
       [
         "expo-router",
         {
-          "origin": "https://rork.com/"
+          "origin": "https://brainants.com/"
         }
       ],
       "expo-font",
@@ -47,7 +47,7 @@
     },
     "extra": {
       "router": {
-        "origin": "https://rork.com/"
+        "origin": "https://brainants.com/"
       },
       "eas": {
         "projectId": "b98e1f9c-7583-47ca-a9c3-ab426ebe058d"

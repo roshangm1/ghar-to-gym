@@ -110,7 +110,10 @@ function generateAppJson(config) {
       },
       ios: {
         supportsTablet: true,
-        bundleIdentifier: config.bundleIdentifier.ios
+        bundleIdentifier: config.bundleIdentifier.ios,
+        infoPlist: {
+          ITSAppUsesNonExemptEncryption: false
+        }
       },
       android: {
         adaptiveIcon: {
