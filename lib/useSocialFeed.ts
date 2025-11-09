@@ -16,6 +16,7 @@ export function useSocialFeed(userId?: string | null, limit: number = 10, offset
         offset,
       },
     },
+    
   });
 
   const posts: SocialPost[] = (data?.socialPosts || [])
@@ -186,22 +187,6 @@ export async function toggleLikePost(postId: string, userId: string): Promise<vo
     console.error('Error toggling like on social post:', error);
     throw error;
   }
-}
-
-/**
- * Like a social post (increment likes count)
- * @deprecated Use toggleLikePost instead
- */
-export async function likeSocialPost(postId: string): Promise<void> {
-  throw new Error('Use toggleLikePost with userId instead');
-}
-
-/**
- * Unlike a social post (decrement likes count)
- * @deprecated Use toggleLikePost instead
- */
-export async function unlikeSocialPost(postId: string): Promise<void> {
-  throw new Error('Use toggleLikePost with userId instead');
 }
 
 /**

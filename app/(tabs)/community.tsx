@@ -1,101 +1,61 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { View, NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LegendList } from '@legendapp/list';
-import { useApp } from '@/contexts/AppContext';
-import { useSocialFeed, toggleLikePost, loadMoreSocialPosts } from '@/lib/useSocialFeed';
-import { SocialPost } from '@/types';
-import { useStatusBarBlur } from '@/components/StatusBarBlur';
-import { useUserProfile } from '@/lib/useUserData';
-import { useThemeColor } from '@/hooks/useThemeColor';
 import {
+  ChallengesSection,
   CommunityHeader,
   CommunityStatsRow,
-  ChallengesSection,
   PostCard,
 } from '@/components/community';
+import { useStatusBarBlur } from '@/components/StatusBarBlur';
+import { useApp } from '@/contexts/AppContext';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { loadMoreSocialPosts, toggleLikePost, useSocialFeed } from '@/lib/useSocialFeed';
+import { useUserProfile } from '@/lib/useUserData';
+import { SocialPost } from '@/types';
+import { LegendList } from '@legendapp/list';
 import { Users } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, Text, View } from 'react-native';
 
 const POSTS_PER_PAGE = 10;
 
 export default function CommunityScreen() {
   const { profile } = useApp();
   const { userId } = useUserProfile();
-  const [offset, setOffset] = useState(0);
   const { posts: dbPosts, isLoading: postsLoading, hasMore: dbHasMore } = useSocialFeed(userId, POSTS_PER_PAGE, 0);
-  const insets = useSafeAreaInsets();
   const colors = useThemeColor();
   const styles = createStyles(colors);
   const { handleScroll, StatusBarBlurComponent } = useStatusBarBlur();
-  const [optimisticLikes, setOptimisticLikes] = useState<Map<string, { isLiked: boolean; likes: number }>>(new Map());
-  const [allPosts, setAllPosts] = useState<SocialPost[]>([]);
+  
+  const [loadedPosts, setLoadedPosts] = useState<SocialPost[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMoreLoaded, setHasMoreLoaded] = useState(true);
   const isLoadingMoreRef = useRef(false);
-  const hasMoreRef = useRef(true);
-  const allPostsRef = useRef<SocialPost[]>([]);
 
-  // Keep refs in sync with state
-  useEffect(() => {
-    isLoadingMoreRef.current = isLoadingMore;
-    hasMoreRef.current = hasMore;
-    allPostsRef.current = allPosts;
-  }, [isLoadingMore, hasMore, allPosts]);
-
-  // Update allPosts when dbPosts change (initial load)
-  // Only update if dbPosts actually changed (not just a new array reference)
-  const dbPostsIds = useMemo(() => dbPosts.map(p => p.id).join(','), [dbPosts]);
-  const prevDbPostsIdsRef = useRef<string>('');
+  const allPosts = postsLoading ? [] : [...dbPosts, ...loadedPosts];
+  const hasMore = loadedPosts.length > 0 ? hasMoreLoaded : dbHasMore;
+  const initialPostIds = dbPosts.map(p => p.id).join(',');
+  const prevInitialPostIdsRef = useRef<string>('');
   
   useEffect(() => {
-    if (postsLoading) return;
-    
-    // Only update if dbPosts IDs actually changed and offset is 0 (initial load)
-    if (dbPostsIds !== prevDbPostsIdsRef.current && offset === 0) {
-      prevDbPostsIdsRef.current = dbPostsIds;
-      
-      if (dbPosts.length > 0) {
-        setAllPosts(dbPosts);
-        setHasMore(dbHasMore);
-        hasMoreRef.current = dbHasMore;
-      } else {
-        setAllPosts([]);
-        setHasMore(false);
-        hasMoreRef.current = false;
-      }
+    if (!postsLoading && initialPostIds !== prevInitialPostIdsRef.current) {
+      prevInitialPostIdsRef.current = initialPostIds;
+      setLoadedPosts([]);
+      setHasMoreLoaded(true);
     }
-  }, [dbPostsIds, postsLoading, dbPosts, dbHasMore, offset]);
+  }, [initialPostIds, postsLoading]);
 
-  // Merge database posts with optimistic updates
-  const posts = useMemo(() => {
-    return allPosts.map((post) => {
-      const optimistic = optimisticLikes.get(post.id);
-      if (optimistic) {
-        return {
-          ...post,
-          isLiked: optimistic.isLiked,
-          likes: optimistic.likes,
-        };
-      }
-      return post;
-    });
-  }, [allPosts, optimisticLikes]);
 
-  const handleLoadMore = useCallback(async () => {
-    // Use refs to prevent multiple simultaneous loads
-    if (isLoadingMoreRef.current || !hasMoreRef.current || allPostsRef.current.length === 0) {
+  const handleLoadMore = async () => {
+    if (isLoadingMoreRef.current || !hasMore || allPosts.length === 0) {
       return;
     }
 
     setIsLoadingMore(true);
     isLoadingMoreRef.current = true;
     
-    // Calculate next offset
-    const nextOffset = allPostsRef.current.length;
+    const nextOffset = allPosts.length;
     
     let result: { posts: SocialPost[]; hasMore: boolean } | null = null;
     
-    // Load posts using InstantDB's offset-based pagination
     const loadPromise = loadMoreSocialPosts(userId, nextOffset, POSTS_PER_PAGE);
     
     result = await loadPromise.catch((error) => {
@@ -103,75 +63,40 @@ export default function CommunityScreen() {
       return null;
     });
     
-    // Handle success case
     if (result !== null) {
       if (result.posts.length > 0) {
-        setAllPosts((prev) => {
-          const newPosts = [...prev, ...result!.posts];
-          allPostsRef.current = newPosts;
-          return newPosts;
-        });
-        setHasMore(result.hasMore);
-        hasMoreRef.current = result.hasMore;
-        setOffset(nextOffset + result.posts.length);
+        setLoadedPosts((prev) => [...prev, ...result!.posts]);
+        setHasMoreLoaded(result.hasMore);
       } else {
-        setHasMore(false);
-        hasMoreRef.current = false;
+        setHasMoreLoaded(false);
       }
     }
     
-    // Cleanup - always reset loading state
     setIsLoadingMore(false);
     isLoadingMoreRef.current = false;
-  }, [userId]);
+  };
+  
+  useEffect(() => {
+    isLoadingMoreRef.current = isLoadingMore;
+  }, [isLoadingMore]);
 
-  const handleScrollWithPagination = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleScrollWithPagination = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     handleScroll(event);
-  }, [handleScroll]);
+  };
 
-  const handleLike = useCallback(async (post: SocialPost) => {
+  const handleLike = async (post: SocialPost) => {
     if (!userId) {
-      // User not logged in - could show alert here
       return;
     }
     
-    // Get current state (from optimistic update if exists, otherwise from post)
-    const optimistic = optimisticLikes.get(post.id);
-    const currentIsLiked = optimistic?.isLiked ?? post.isLiked ?? false;
-    const currentLikes = optimistic?.likes ?? post.likes ?? 0;
-    const newIsLiked = !currentIsLiked;
-    const newLikes = newIsLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
-
-    // Optimistically update UI immediately
-    setOptimisticLikes((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(post.id, { isLiked: newIsLiked, likes: newLikes });
-      return newMap;
-    });
-
     try {
-      await toggleLikePost(post.id, userId);
-      // On success, remove from optimistic updates after a short delay
-      // This allows the database hook to sync first
-      setTimeout(() => {
-        setOptimisticLikes((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(post.id);
-          return newMap;
-        });
-      }, 100);
+      toggleLikePost(post.id, userId);
     } catch (error) {
       console.error('Error toggling like on post:', error);
-      // Revert optimistic update on error
-      setOptimisticLikes((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(post.id);
-        return newMap;
-      });
     }
-  }, [userId, optimisticLikes]);
+  };
 
-  const formatTimeAgo = useCallback((timestamp: string) => {
+  const formatTimeAgo = (timestamp: string) => {
     const now = new Date().getTime();
     const postTime = new Date(timestamp).getTime();
     const diff = now - postTime;
@@ -181,9 +106,9 @@ export default function CommunityScreen() {
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     return 'Just now';
-  }, []);
+  };
 
-  const getPostIcon = useCallback((post: SocialPost) => {
+  const getPostIcon = (post: SocialPost) => {
     if (post.data?.icon) return post.data.icon;
     switch (post.type) {
       case 'achievement':
@@ -197,9 +122,9 @@ export default function CommunityScreen() {
       default:
         return '✨';
     }
-  }, []);
+  };
 
-  const renderPost = useCallback(({ item: post }: { item: SocialPost }) => {
+  const renderPost = ({ item: post }: { item: SocialPost }) => {
     const isCurrentUser = post.userId === userId || post.userId === profile.id;
     return (
       <View style={styles.postContainer}>
@@ -212,9 +137,9 @@ export default function CommunityScreen() {
         />
       </View>
     );
-  }, [userId, profile.id, handleLike, formatTimeAgo, getPostIcon, styles]);
+  }
 
-  const renderHeader = useCallback(() => (
+  const renderHeader = () => (
     <>
       <CommunityHeader />
       <CommunityStatsRow profile={profile} />
@@ -224,9 +149,9 @@ export default function CommunityScreen() {
         <Text style={styles.activityFeedTitle}>Activity Feed</Text>
       </View>
     </>
-  ), [profile, colors.primary, styles]);
+  );
 
-  const renderEmpty = useCallback(() => {
+  const renderEmpty = () => {
     if (postsLoading) {
       return (
         <View style={styles.emptyContainer}>
@@ -240,22 +165,22 @@ export default function CommunityScreen() {
         <Text style={styles.emptyText}>No posts yet. Be the first to share your progress! 💪</Text>
       </View>
     );
-  }, [postsLoading, colors.primary, styles]);
+  };
 
-  const renderFooter = useCallback(() => {
+  const renderFooter = () => {
     if (!isLoadingMore) return null;
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
-  }, [isLoadingMore, colors.primary, styles]);
+  };
 
   return (
     <View style={{ flex: 1 }}>
       <StatusBarBlurComponent />
       <LegendList
-        data={posts}
+        data={allPosts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
@@ -266,7 +191,7 @@ export default function CommunityScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom }}
+        contentContainerStyle={{ backgroundColor: colors.backgroundSecondary }}
       />
     </View>
   );
