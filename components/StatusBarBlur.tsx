@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
-import { View, Animated, NativeScrollEvent, NativeSyntheticEvent, useColorScheme, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
+import React, { useRef } from 'react';
+import { Animated, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface StatusBarBlurProps {

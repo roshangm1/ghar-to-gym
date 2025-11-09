@@ -42,7 +42,7 @@ export function ChallengesSection() {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Target size={20} color={colors.primary} />
+          <Target size={18} color={colors.textSecondary} />
           <Text style={styles.sectionTitle}>Active Challenges</Text>
         </View>
         <View style={styles.loadingContainer}>
@@ -56,7 +56,7 @@ export function ChallengesSection() {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Target size={20} color={colors.primary} />
+          <Target size={18} color={colors.textSecondary} />
           <Text style={styles.sectionTitle}>Active Challenges</Text>
         </View>
         <View style={styles.emptyContainer}>
@@ -69,7 +69,7 @@ export function ChallengesSection() {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Target size={20} color={colors.primary} />
+        <Target size={18} color={colors.textSecondary} />
         <Text style={styles.sectionTitle}>Active Challenges</Text>
       </View>
       {challenges.slice(0, 2).map((challenge) => {
@@ -137,25 +137,25 @@ export function ChallengesSection() {
 
 const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
   section: {
-    marginTop: 20,
+    marginTop: 16,
     paddingHorizontal: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: 10,
+    gap: 6,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
+    fontSize: 17,
+    fontWeight: '600' as const,
     color: colors.text,
   },
   challengeCard: {
     backgroundColor: colors.background,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
   },
   challengeHeader: {
     flexDirection: 'row',
@@ -167,8 +167,8 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     flex: 1,
   },
   challengeTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
+    fontSize: 16,
+    fontWeight: '600' as const,
     color: colors.text,
     marginBottom: 2,
   },

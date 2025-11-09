@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Users } from 'lucide-react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -8,6 +8,8 @@ import { PostCard } from './PostCard';
 interface ActivityFeedSectionProps {
   posts: SocialPost[];
   isLoading: boolean;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
   currentUserId: string | null;
   onLike: (post: SocialPost) => void;
 }
@@ -15,6 +17,8 @@ interface ActivityFeedSectionProps {
 export function ActivityFeedSection({ 
   posts, 
   isLoading, 
+  isLoadingMore = false,
+  hasMore = false,
   currentUserId, 
   onLike,
 }: ActivityFeedSectionProps) {
@@ -53,7 +57,7 @@ export function ActivityFeedSection({
     onLike(post);
   }, [onLike]);
 
-  if (isLoading) {
+  if (isLoading && posts.length === 0) {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -101,6 +105,11 @@ export function ActivityFeedSection({
           />
         );
       })}
+      {isLoadingMore && (
+        <View style={styles.footerLoader}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      )}
     </View>
   );
 }
@@ -140,6 +149,11 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  footerLoader: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

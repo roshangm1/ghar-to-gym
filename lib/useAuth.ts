@@ -13,7 +13,7 @@ export function useAuth() {
       setPendingEmail(email);
       await db.auth.sendMagicCode({ email });
     } catch (err: any) {
-      console.log("a", err)
+      console.log(err)
       setPendingEmail(null);
       error = err;
     }

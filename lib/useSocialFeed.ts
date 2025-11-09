@@ -2,13 +2,20 @@ import { db, id } from './instant';
 import { SocialPost, Comment } from '@/types';
 
 /**
- * Hook to fetch all social posts from InstantDB
+ * Hook to fetch social posts from InstantDB with pagination
  * Posts are sorted by creation date (newest first)
  * @param userId - Optional user ID to determine if posts are liked by the current user
+ * @param limit - Number of posts to fetch (default: 10)
+ * @param offset - Number of posts to skip (default: 0)
  */
-export function useSocialFeed(userId?: string | null) {
+export function useSocialFeed(userId?: string | null, limit: number = 10, offset: number = 0) {
   const { data, isLoading } = db.useQuery({
-    socialPosts: {},
+    socialPosts: {
+      $: {
+        limit,
+        offset,
+      },
+    },
   });
 
   const posts: SocialPost[] = (data?.socialPosts || [])
@@ -31,9 +38,64 @@ export function useSocialFeed(userId?: string | null) {
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+  // Determine if there are more posts by checking if we got a full page
+  // If we got fewer posts than the limit, we've reached the end
+  const hasMore = posts.length >= limit;
+
   return {
     posts,
     isLoading,
+    hasMore,
+  };
+}
+
+/**
+ * Load more social posts (for pagination) using InstantDB's offset-based pagination
+ * @param userId - Optional user ID to determine if posts are liked by the current user
+ * @param offset - Number of posts to skip
+ * @param limit - Number of posts to fetch (default: 10)
+ */
+export async function loadMoreSocialPosts(
+  userId: string | null | undefined,
+  offset: number,
+  limit: number = 10
+): Promise<{ posts: SocialPost[]; hasMore: boolean }> {
+  const { data } = await db.queryOnce({
+    socialPosts: {
+      $: {
+        limit,
+        offset,
+      },
+    },
+  });
+
+  const posts: SocialPost[] = (data?.socialPosts || [])
+    .map((post: any) => {
+      const likedBy = (post.likedBy || []) as string[];
+      const isLiked = userId ? likedBy.includes(userId) : false;
+      return {
+        id: post.id,
+        userId: post.userId,
+        userName: post.userName,
+        userAvatar: post.userAvatar,
+        type: post.type as SocialPost['type'],
+        content: post.content,
+        timestamp: new Date(post.createdAt).toISOString(),
+        likes: post.likes || 0,
+        comments: post.comments || 0,
+        data: post.data || undefined,
+        isLiked,
+      };
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  // Determine if there are more posts by checking if we got a full page
+  // If we got fewer posts than the limit, we've reached the end
+  const hasMore = posts.length >= limit;
+
+  return {
+    posts,
+    hasMore,
   };
 }
 
