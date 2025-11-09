@@ -93,6 +93,15 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen 
+          name="challenges/[id]"
+          options={{
+            headerShown: true,
+            headerBackButtonDisplayMode: "minimal",
+            title: "Challenge Details",
+            presentation: "card",
+          }}
+        />
+        <Stack.Screen 
           name="seed-data"
           options={{
             presentation: "card",

@@ -100,6 +100,8 @@ export interface UserProfile {
     participants: number;
     endDate: string;
     reward: string;
+    metricType: 'streak' | 'workout_count' | 'workout_count_weekly' | 'workout_count_monthly';
+    category?: WorkoutCategory; // Optional: for category-specific challenges
   }
   
   export interface WorkoutLog {

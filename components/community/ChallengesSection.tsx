@@ -1,12 +1,70 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Target } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { CHALLENGES } from '@/mocks/challenges';
+import { useChallenges, joinChallenge } from '@/lib/useChallenges';
+import { useUserProfile } from '@/lib/useUserData';
 
 export function ChallengesSection() {
   const colors = useThemeColor();
   const styles = createStyles(colors);
+  const { userId } = useUserProfile();
+  const { challenges, isLoading } = useChallenges(userId);
+  const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
+
+  const handleJoinChallenge = async (challengeId: string) => {
+    if (!userId) {
+      Alert.alert(
+        'Login Required',
+        'You need to be logged in to join challenges.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setJoiningChallengeId(challengeId);
+    try {
+      await joinChallenge(userId, challengeId);
+      setJoiningChallengeId(null);
+      // Challenge progress will be updated automatically on next workout
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to join challenge. Please try again.',
+        [{ text: 'OK' }]
+      );
+      setJoiningChallengeId(null);
+    } 
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Target size={20} color={colors.primary} />
+          <Text style={styles.sectionTitle}>Active Challenges</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (challenges.length === 0) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Target size={20} color={colors.primary} />
+          <Text style={styles.sectionTitle}>Active Challenges</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No active challenges at the moment</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.section}>
@@ -14,13 +72,17 @@ export function ChallengesSection() {
         <Target size={20} color={colors.primary} />
         <Text style={styles.sectionTitle}>Active Challenges</Text>
       </View>
-      {CHALLENGES.slice(0, 2).map((challenge) => {
+      {challenges.slice(0, 2).map((challenge) => {
         const progress = (challenge.progress / challenge.goal) * 100;
+        const hasJoined = (challenge as any).hasJoined ?? false;
+        const isJoining = joiningChallengeId === challenge.id;
+
         return (
           <TouchableOpacity
             key={challenge.id}
             style={styles.challengeCard}
             activeOpacity={0.7}
+            onPress={() => router.push(`/challenges/${challenge.id}` as any)}
           >
             <View style={styles.challengeHeader}>
               <View style={styles.challengeTitleContainer}>
@@ -35,19 +97,37 @@ export function ChallengesSection() {
                 </Text>
               </View>
             </View>
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${Math.min(progress, 100)}%` },
-                  ]}
-                />
+            {hasJoined ? (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${Math.min(progress, 100)}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {challenge.progress}/{challenge.goal}
+                </Text>
               </View>
-              <Text style={styles.progressText}>
-                {challenge.progress}/{challenge.goal}
-              </Text>
-            </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.joinButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleJoinChallenge(challenge.id);
+                }}
+                disabled={isJoining}
+                activeOpacity={0.8}
+              >
+                {isJoining ? (
+                  <ActivityIndicator size="small" color={colors.background} />
+                ) : (
+                  <Text style={styles.joinButtonText}>Join Challenge</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -131,6 +211,36 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     color: colors.text,
     minWidth: 50,
     textAlign: 'right',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  joinButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.tint,
+  },
+  joinButtonText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: colors.text,
   },
 });
 

@@ -1,6 +1,7 @@
 import { db, id } from './instant';
 import { UserProfile, WorkoutLog } from '@/types';
 import { createWorkoutPost, createAchievementPost } from './useSocialFeed';
+import { updateChallengeProgress } from './useChallenges';
 
 export function useUserProfile() {
   const { user, isLoading: authLoading } = db.useAuth();
@@ -218,6 +219,33 @@ export async function logWorkoutToDB(
 
       // Check and unlock achievements
       await checkAndUnlockAchievements(userId, newStreak, newTotalWorkouts);
+
+      // Update challenge progress for all active challenges
+      try {
+        // Get all active challenges
+        const { data: challengesData } = await db.queryOnce({
+          challenges: {
+            $: {
+              where: { isActive: true as any },
+            },
+          },
+        });
+
+        if (challengesData?.challenges) {
+          // Update progress for each active challenge
+          for (const challenge of challengesData.challenges) {
+            try {
+              await updateChallengeProgress(userId, challenge.id, workoutLog.workoutId);
+            } catch (error) {
+              console.error(`Error updating challenge progress for challenge ${challenge.id}:`, error);
+              // Don't throw - continue with other challenges
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error updating challenge progress:', error);
+        // Don't throw - workout was logged, just challenge update failed
+      }
 
       // Create social post if autoPost and shareWorkouts are enabled
       const userPreferences = userRecord.preferences || {

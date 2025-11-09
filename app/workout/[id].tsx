@@ -48,10 +48,9 @@ export default function WorkoutDetailScreen() {
   );
 
   // Memoize derived values
-  const isWorkoutStarted = useMemo(
-    () => status === 'in_progress' || status === 'completed',
-    [status]
-  );
+  const isWorkoutStarted = status === 'in_progress'
+
+  console.log('status', status);
   
   const isWorkoutCompleted = useMemo(
     () => status === 'completed',
@@ -137,7 +136,7 @@ export default function WorkoutDetailScreen() {
         [{ text: 'OK' }]
       );
     }
-  }, [isAuthenticated, userId, id, isWorkoutStarted, completedExercises, workout]);
+  }, [workout, isAuthenticated, userId, isWorkoutStarted, completedExercises, id]);
 
   const handleCompleteWorkout = useCallback(async () => {
     if (!workout) return;
@@ -239,6 +238,7 @@ export default function WorkoutDetailScreen() {
               completedExercises={completedExercises}
               onToggleExercise={toggleExercise}
               workoutId={workout.id}
+              isWorkoutStarted={isWorkoutStarted}
             />
           </View>
           {!isWorkoutStarted && (

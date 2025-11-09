@@ -299,6 +299,30 @@ const schema = i.schema({
       createdAt: i.number(),
       updatedAt: i.number(),
     }),
+    // Challenges - community challenges that users can participate in
+    challenges: i.entity({
+      title: i.string(),
+      culturalName: i.string(),
+      description: i.string(),
+      type: i.string(), // 'weekly' | 'monthly'
+      goal: i.number(), // Target number (e.g., 29 workouts or 7 days streak)
+      endDate: i.string(), // ISO date string (YYYY-MM-DD)
+      reward: i.string(), // Reward description (e.g., 'Gold Badge & 500 Points')
+      isActive: i.boolean(), // Whether the challenge is currently active
+      metricType: i.string(), // 'streak' | 'workout_count' | 'workout_count_weekly' | 'workout_count_monthly'
+      category: i.string().optional(), // Optional: WorkoutCategory for category-specific challenges
+      createdAt: i.number(),
+    }),
+    // User challenge progress - tracks individual user progress in challenges
+    userChallengeProgress: i.entity({
+      userId: i.string(), // Reference to users.id
+      challengeId: i.string(), // Reference to challenges.id
+      progress: i.number(), // Current progress (e.g., 12 out of 29)
+      completed: i.boolean(), // Whether the challenge is completed
+      completedAt: i.number().optional(), // Timestamp when challenge was completed
+      createdAt: i.number(),
+      updatedAt: i.number(),
+    }),
   },
   links: {
     workoutExercises: {
@@ -392,6 +416,32 @@ const schema = i.schema({
         on: 'userWorkouts',
         has: 'one',
         label: 'user',
+      },
+    },
+    // Link users to userChallengeProgress
+    userChallengeProgress: {
+      forward: {
+        on: 'users',
+        has: 'many',
+        label: 'challengeProgress',
+      },
+      reverse: {
+        on: 'userChallengeProgress',
+        has: 'one',
+        label: 'user',
+      },
+    },
+    // Link challenges to userChallengeProgress
+    challengeProgress: {
+      forward: {
+        on: 'challenges',
+        has: 'many',
+        label: 'userProgress',
+      },
+      reverse: {
+        on: 'userChallengeProgress',
+        has: 'one',
+        label: 'challenge',
       },
     },
   },

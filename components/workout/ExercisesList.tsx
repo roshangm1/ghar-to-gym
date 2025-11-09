@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Exercise } from '@/types';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { ExerciseVideo } from './ExerciseVideo';
@@ -10,6 +10,7 @@ interface ExercisesListProps {
   completedExercises: Set<string>;
   onToggleExercise: (exerciseId: string) => void;
   workoutId?: string;
+  isWorkoutStarted?: boolean;
 }
 
 export function ExercisesList({
@@ -17,6 +18,7 @@ export function ExercisesList({
   completedExercises,
   onToggleExercise,
   workoutId,
+  isWorkoutStarted,
 }: ExercisesListProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
@@ -29,7 +31,7 @@ export function ExercisesList({
         data={exercises}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        extraData={completedExercises.size}
+        extraData={`${completedExercises.size}-${isWorkoutStarted}`}
         renderItem={({ item, index }) => {
           const isCompleted = completedExercises.has(item.id);
           return (

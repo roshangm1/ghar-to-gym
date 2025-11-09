@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'rea
 import { router } from 'expo-router';
 import { seedWorkouts, clearWorkouts } from '@/lib/seed-workouts';
 import { seedNutrition, clearNutrition } from '@/lib/seed-nutrition';
+import { seedChallenges, clearChallenges } from '@/lib/seed-challenges';
 
 /**
  * Seed Data Screen
@@ -16,6 +17,7 @@ import { seedNutrition, clearNutrition } from '@/lib/seed-nutrition';
 export default function SeedDataScreen() {
   const [isSeedingWorkouts, setIsSeedingWorkouts] = useState(false);
   const [isSeedingNutrition, setIsSeedingNutrition] = useState(false);
+  const [isSeedingChallenges, setIsSeedingChallenges] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -65,24 +67,49 @@ export default function SeedDataScreen() {
     }
   };
 
+  const handleSeedChallenges = async () => {
+    try {
+      setIsSeedingChallenges(true);
+      setMessage('Seeding challenges...');
+      
+      const result = await seedChallenges();
+      
+      setMessage(`✅ Successfully seeded ${result.count} challenges!`);
+      
+      Alert.alert(
+        'Success!',
+        `${result.count} challenges have been added to your database.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setMessage(`❌ Error: ${errorMessage}`);
+      Alert.alert('Error', `Failed to seed challenges: ${errorMessage}`);
+    } finally {
+      setIsSeedingChallenges(false);
+    }
+  };
+
   const handleSeedAll = async () => {
     try {
       setIsSeedingWorkouts(true);
       setIsSeedingNutrition(true);
+      setIsSeedingChallenges(true);
       setMessage('Seeding all data...');
       
-      const [workoutResult, nutritionResult] = await Promise.all([
+      const [workoutResult, nutritionResult, challengesResult] = await Promise.all([
         seedWorkouts(),
         seedNutrition(),
+        seedChallenges(),
       ]);
       
       setMessage(
-        `✅ Successfully seeded ${workoutResult.count} workouts and ${nutritionResult.count} nutrition tips!`
+        `✅ Successfully seeded ${workoutResult.count} workouts, ${nutritionResult.count} nutrition tips, and ${challengesResult.count} challenges!`
       );
       
       Alert.alert(
         'Success!',
-        `Database seeded successfully!\n\n${workoutResult.count} workouts\n${nutritionResult.count} nutrition tips`,
+        `Database seeded successfully!\n\n${workoutResult.count} workouts\n${nutritionResult.count} nutrition tips\n${challengesResult.count} challenges`,
         [
           {
             text: 'Done',
@@ -97,13 +124,14 @@ export default function SeedDataScreen() {
     } finally {
       setIsSeedingWorkouts(false);
       setIsSeedingNutrition(false);
+      setIsSeedingChallenges(false);
     }
   };
 
   const handleClearAll = async () => {
     Alert.alert(
       'Clear All Data?',
-      'This will delete all workouts, exercises, and nutrition tips from the database. Are you sure?',
+      'This will delete all workouts, exercises, nutrition tips, and challenges from the database. Are you sure?',
       [
         {
           text: 'Cancel',
@@ -117,14 +145,13 @@ export default function SeedDataScreen() {
               setIsClearing(true);
               setMessage('Clearing all data...');
               
-              const [workoutResult, nutritionResult] = await Promise.all([
+              await Promise.all([
                 clearWorkouts(),
                 clearNutrition(),
+                clearChallenges(),
               ]);
               
-              setMessage(
-                `✅ Successfully cleared ${workoutResult.deleted + nutritionResult.deleted} items!`
-              );
+              setMessage('✅ Successfully cleared all data!');
               
               Alert.alert('Success', 'All data has been cleared.');
             } catch (error) {
@@ -153,11 +180,11 @@ export default function SeedDataScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>ℹ️ About This Tool</Text>
           <Text style={styles.infoText}>
-            • Use "Seed All Data" to populate everything at once{'\n'}
-            • Or seed workouts and nutrition separately{'\n'}
+            • Use &quot;Seed All Data&quot; to populate everything at once{'\n'}
+            • Or seed workouts, nutrition, and challenges separately{'\n'}
             • Only run the seed functions once{'\n'}
-            • Use "Clear Data" if you need to reset and re-seed{'\n'}
-            • Make sure you've set your APP_ID in lib/instant.ts
+            • Use &quot;Clear Data&quot; if you need to reset and re-seed{'\n'}
+            • Make sure you&apos;ve set your APP_ID in lib/instant.ts
           </Text>
         </View>
 
@@ -165,13 +192,13 @@ export default function SeedDataScreen() {
           style={[
             styles.button,
             styles.seedAllButton,
-            (isSeedingWorkouts || isSeedingNutrition || isClearing) && styles.buttonDisabled,
+            (isSeedingWorkouts || isSeedingNutrition || isSeedingChallenges || isClearing) && styles.buttonDisabled,
           ]}
           onPress={handleSeedAll}
-          disabled={isSeedingWorkouts || isSeedingNutrition || isClearing}
+          disabled={isSeedingWorkouts || isSeedingNutrition || isSeedingChallenges || isClearing}
         >
           <Text style={styles.buttonText}>
-            {isSeedingWorkouts || isSeedingNutrition
+            {isSeedingWorkouts || isSeedingNutrition || isSeedingChallenges
               ? '⏳ Seeding All...'
               : '🌱 Seed All Data (Recommended)'}
           </Text>
@@ -212,9 +239,23 @@ export default function SeedDataScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[
+            styles.button,
+            styles.seedButton,
+            (isSeedingChallenges || isClearing) && styles.buttonDisabled,
+          ]}
+          onPress={handleSeedChallenges}
+          disabled={isSeedingChallenges || isClearing}
+        >
+          <Text style={styles.buttonText}>
+            {isSeedingChallenges ? '⏳ Seeding...' : '🏆 Seed Challenges Only'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.button, styles.clearButton, isClearing && styles.buttonDisabled]}
           onPress={handleClearAll}
-          disabled={isSeedingWorkouts || isSeedingNutrition || isClearing}
+          disabled={isSeedingWorkouts || isSeedingNutrition || isSeedingChallenges || isClearing}
         >
           <Text style={styles.buttonText}>
             {isClearing ? '⏳ Clearing...' : '🗑️ Clear All Data'}
@@ -224,7 +265,7 @@ export default function SeedDataScreen() {
         <TouchableOpacity
           style={[styles.button, styles.backButton]}
           onPress={() => router.back()}
-          disabled={isSeedingWorkouts || isSeedingNutrition || isClearing}
+          disabled={isSeedingWorkouts || isSeedingNutrition || isSeedingChallenges || isClearing}
         >
           <Text style={styles.buttonText}>← Back</Text>
         </TouchableOpacity>
