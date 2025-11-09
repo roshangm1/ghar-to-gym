@@ -14,6 +14,7 @@ import { LegendList } from '@legendapp/list';
 import { Users } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, Text, View } from 'react-native';
+import dayjs from 'dayjs';
 
 const POSTS_PER_PAGE = 10;
 
@@ -97,15 +98,7 @@ export default function CommunityScreen() {
   };
 
   const formatTimeAgo = (timestamp: string) => {
-    const now = new Date().getTime();
-    const postTime = new Date(timestamp).getTime();
-    const diff = now - postTime;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    return 'Just now';
+    return dayjs(timestamp).fromNow();
   };
 
   const getPostIcon = (post: SocialPost) => {

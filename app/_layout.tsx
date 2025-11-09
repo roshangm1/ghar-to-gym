@@ -16,6 +16,10 @@ import {
 import colors from "@/constants/colors";
 import { enableFreeze } from "react-native-screens";
 
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 enableFreeze(true);
 
 SplashScreen.preventAutoHideAsync();

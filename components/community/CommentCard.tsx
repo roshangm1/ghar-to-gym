@@ -3,19 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Trash2, Clock } from 'lucide-react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Comment } from '@/types';
+import dayjs from 'dayjs';
 
 interface CommentCardProps {
   comment: Comment;
   isCurrentUser: boolean;
   onDelete?: () => void;
-  formatTimeAgo: (timestamp: string) => string;
 }
 
 export function CommentCard({ 
   comment, 
   isCurrentUser, 
   onDelete,
-  formatTimeAgo 
 }: CommentCardProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
@@ -36,7 +35,7 @@ export function CommentCard({
             <View style={styles.commentMeta}>
               <Clock size={10} color={colors.textSecondary} />
               <Text style={styles.commentTime}>
-                {formatTimeAgo(comment.timestamp)}
+                {dayjs(comment.timestamp).fromNow()}
               </Text>
             </View>
           </View>

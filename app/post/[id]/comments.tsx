@@ -20,7 +20,6 @@ import { useUserProfile } from '@/lib/useUserData';
 import { useApp } from '@/contexts/AppContext';
 import { CommentCard, CommentInput } from '@/components/community';
 import { Comment } from '@/types';
-import { useHeaderHeight } from '@react-navigation/elements';
 
 const RenderScrollComponent = React.forwardRef<ScrollView, ScrollViewProps>(
     (props, ref) => <KeyboardAwareScrollView {...props} ref={ref} />,
@@ -37,22 +36,6 @@ export default function CommentsScreen() {
   const { userId, profile: userProfile } = useUserProfile();
   const { comments, isLoading } = useComments(postId);
 
-  const headerHeight = useHeaderHeight();
-
-
-  const formatTimeAgo = useCallback((timestamp: string) => {
-    const now = new Date().getTime();
-    const commentTime = new Date(timestamp).getTime();
-    const diff = now - commentTime;
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return 'Just now';
-  }, []);
 
   const handleSubmitComment = useCallback(async (text: string) => {
     if (!userId) {
@@ -106,7 +89,7 @@ export default function CommentsScreen() {
     );
   }, [userId]);
 
-  const renderComment = useCallback(
+  const renderComment = 
     ({ item: comment }: { item: Comment }) => (
       <CommentCard
         comment={comment}
@@ -116,11 +99,8 @@ export default function CommentsScreen() {
             ? () => handleDeleteComment(comment.id)
             : undefined
         }
-        formatTimeAgo={formatTimeAgo}
       />
-    ),
-    [userId, formatTimeAgo, handleDeleteComment]
-  );
+    )
 
   const renderEmpty = useCallback(() => {
     if (isLoading) {

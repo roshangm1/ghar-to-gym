@@ -4,6 +4,7 @@ import { Users } from 'lucide-react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { SocialPost } from '@/types';
 import { PostCard } from './PostCard';
+import dayjs from 'dayjs';
 
 interface ActivityFeedSectionProps {
   posts: SocialPost[];
@@ -26,15 +27,7 @@ export function ActivityFeedSection({
   const styles = createStyles(colors);
 
   const formatTimeAgo = useCallback((timestamp: string) => {
-    const now = new Date().getTime();
-    const postTime = new Date(timestamp).getTime();
-    const diff = now - postTime;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    return 'Just now';
+    return dayjs(timestamp).fromNow();
   }, []);
 
   const getPostIcon = useCallback((post: SocialPost) => {
@@ -100,7 +93,6 @@ export function ActivityFeedSection({
             post={post}
             isCurrentUser={isCurrentUser}
             onLike={() => handleLike(post)}
-            formatTimeAgo={formatTimeAgo}
             getPostIcon={getPostIcon}
           />
         );
