@@ -1,74 +1,77 @@
 import { CheckCircle } from 'lucide-react-native';
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
-import { useVideoPlayer, VideoView } from 'expo-video';
 import { Exercise } from '@/types';
-import { useEvent } from 'expo';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { router } from 'expo-router';
+import { useVideoThumbnail } from '@/lib/useVideoThumbnail';
 
 const CONTAINER_HEIGHT = 220;
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface ExerciseVideoProps {
   exercise: Exercise;
   index: number;
   isCompleted: boolean;
   onToggle: (exerciseId: string) => void;
+  workoutId?: string;
 }
 
 const VideoWithInstructions = ({ videoUrl, index, workoutId, instructions }: { videoUrl: string, index: number, workoutId: string, instructions: string[] }) => {
 
   const colors = useThemeColor();
-  const playerRef = useRef<VideoView>(null);
-
-  const player = useVideoPlayer(videoUrl || '', (player) => {
-    player.loop = false;
-    player.muted = false;
+  
+  // Generate thumbnail from video
+  const { thumbnailUri, isLoading } = useVideoThumbnail(videoUrl, undefined, {
+    position: 'bottom', // Get thumbnail from bottom part of video
+    quality: 0.8,
   });
 
-  const estimatedVideoHeight = SCREEN_WIDTH * 1.78; // Rough estimate for 9:16 portrait
-  const extraHeight = estimatedVideoHeight - CONTAINER_HEIGHT;
-  const videoOffset = -(extraHeight * 0.40); // Negative = shift down to show bottom
+  const styles = createStyles(colors);
+  
+  const handlePress = () => {
+    if (workoutId) {
+      router.push({
+        pathname: '/workout/[id]/videos',
+        params: {
+          id: workoutId,
+          workoutId,
+          initialIndex: index.toString(),
+        },
+      });
+    }
+  };
 
-  useEvent(player, 'playingChange', { isPlaying: player.playing });
-  const styles = createStyles(colors, videoOffset);
   return (
     <>
     {videoUrl && (
         <TouchableOpacity
           style={styles.videoContainer}
-          onPress={() => {
-            // Pause the current video
-            player.pause();
-            // Navigate to video reels screen
-            if (workoutId) {
-              router.push({
-                pathname: '/workout/[id]/videos',
-                params: {
-                  id: workoutId,
-                  workoutId,
-                  initialIndex: index.toString(),
-                },
-              });
-            }
-          }}
+          onPress={handlePress}
           activeOpacity={0.9}
         >
           <View style={styles.videoWrapper}>
-            <VideoView
-              ref={playerRef}
-              player={player}
-              style={styles.video}
-              contentFit="cover"
-              nativeControls={false}
-            />
+            {isLoading ? (
+              <View style={styles.thumbnailLoading}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : thumbnailUri ? (
+              <Image
+                source={{ uri: thumbnailUri }}
+                style={styles.thumbnail}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.thumbnailPlaceholder}>
+                <Text style={styles.thumbnailPlaceholderText}>No thumbnail</Text>
+              </View>
+            )}
           </View>
           <View style={styles.playOverlay}>
             <Text style={styles.playIcon}>▶</Text>
@@ -94,6 +97,7 @@ export function ExerciseVideo({
   index,
   isCompleted,
   onToggle,
+  workoutId,
 }: ExerciseVideoProps) {
   const colors = useThemeColor();
   
@@ -129,13 +133,13 @@ export function ExerciseVideo({
           )}
         </TouchableOpacity>
       </View>
-      <VideoWithInstructions workoutId={exercise.workoutId} videoUrl={exercise.videoUrl || ''} index={index} instructions={exercise.instructions} />
+      <VideoWithInstructions workoutId={workoutId || ''} videoUrl={exercise.videoUrl || ''} index={index} instructions={exercise.instructions} />
       
     </View>
   );
 }
 
-const createStyles = (colors: ReturnType<typeof useThemeColor>, videoOffset?: number) => StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.create({
   exerciseCard: {
     backgroundColor: colors.background,
     borderRadius: 12,
@@ -235,13 +239,28 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, videoOffset?: nu
     height: '100%',
     overflow: 'hidden',
   },
-  video: {
+  thumbnail: {
     width: '100%',
-    // Make video taller to allow for translation
-    // For portrait videos with cover mode, the video will be scaled
-    // to fill the width, making it taller than the container
-    height: '200%', // Make it 200% height to have room for translation
-    transform: [{ translateY: videoOffset || 0 }], // Shift video down to show bottom part
+    height: '100%',
+  },
+  thumbnailLoading: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailPlaceholderText: {
+    color: '#fff',
+    fontSize: 14,
+    opacity: 0.5,
   },
 });
 

@@ -14,7 +14,6 @@ import { LegendList } from '@legendapp/list';
 import { Users } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, StyleSheet, Text, View } from 'react-native';
-import dayjs from 'dayjs';
 
 const POSTS_PER_PAGE = 10;
 interface CommunityHeaderSectionProps {

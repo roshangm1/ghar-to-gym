@@ -1,5 +1,5 @@
-import { useLocalSearchParams, router } from 'expo-router';
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,13 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { useVideoPlayer, VideoAirPlayButton, VideoView } from 'expo-video';
 import { BlurView } from 'expo-blur';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useWorkout } from '@/lib/useWorkouts';
 import { useUserProfile, useUserWorkoutInstance, updateExerciseCompletion, startUserWorkout } from '@/lib/useUserData';
 import { useApp } from '@/contexts/AppContext';
-import { ArrowLeft, Square, CheckSquare, Volume2, VolumeX } from 'lucide-react-native';
+import { ArrowLeft, Square, CheckSquare, Volume2, VolumeX, Tv } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
 import BottomSheet, { BottomSheetView, useBottomSheet, useBottomSheetInternal } from '@gorhom/bottom-sheet';
 import { useAnimatedReaction, runOnJS, useSharedValue } from 'react-native-reanimated';
@@ -60,6 +60,28 @@ function MuteButton({ player, colors, insets }: MuteButtonProps) {
         ) : (
           <Volume2 size={24} color="#FFFFFF" />
         )}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+interface CastButtonProps {
+  colors: ReturnType<typeof useThemeColor>;
+  insets: ReturnType<typeof useSafeAreaInsets>;
+
+}
+
+function CastButton({ colors, insets}: CastButtonProps) {
+  const styles = createStyles(colors, insets);
+
+ 
+  return (
+    <TouchableOpacity
+      style={styles.castButton}
+      activeOpacity={0.7}
+    >
+      <View style={styles.castButtonInner}>
+      <VideoAirPlayButton tint={colors.text} />
       </View>
     </TouchableOpacity>
   );
@@ -236,13 +258,13 @@ interface VideoItemProps {
   isCompleted: boolean;
   isActive: boolean;
   onToggleComplete: () => void;
+  playerRef: React.RefObject<VideoView | null>;
 }
 
-function VideoItem({ exercise, index, isCompleted, isActive, onToggleComplete }: VideoItemProps) {
+function VideoItem({ exercise, index, isCompleted, isActive, onToggleComplete, playerRef }: VideoItemProps) {
   const colors = useThemeColor();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
-  const playerRef = useRef<VideoView>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -345,8 +367,10 @@ function VideoItem({ exercise, index, isCompleted, isActive, onToggleComplete }:
           />
         </BottomSheet>
 
-        {/* Mute/Unmute button */}
-        <MuteButton player={player} colors={colors} insets={insets} />
+        <CastButton 
+          colors={colors} 
+          insets={insets}
+        />
 
         {/* Play/Pause button overlay - only show when paused */}
         {!isPlaying && (
@@ -371,6 +395,7 @@ export default function WorkoutVideosScreen() {
     workoutId?: string; 
     initialIndex?: string;
   }>();
+  const playerRef = useRef<VideoView | null>(null);
   const colors = useThemeColor();
   const insets = useSafeAreaInsets();
   const styles = createStyles(colors, insets);
@@ -407,14 +432,11 @@ export default function WorkoutVideosScreen() {
 
   // Initialize state before early returns
   const [currentIndex, setCurrentIndex] = useState(startIndex);
-  const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set(dbCompletedExercises));
   const pagerRef = useRef<PagerView>(null);
   const initialPageSetRef = useRef(false);
-
-  // Sync local state with database state
-  useEffect(() => {
-    setCompletedExercises(new Set(dbCompletedExercises));
-  }, [dbCompletedExercises]);
+  
+  // Derive completed exercises directly from DB state
+  const completedExercises = useMemo(() => new Set(dbCompletedExercises), [dbCompletedExercises]);
 
   const isWorkoutStarted = status === 'in_progress' || status === 'completed';
 
@@ -456,32 +478,12 @@ export default function WorkoutVideosScreen() {
     }
 
     const isCompleted = completedExercises.has(exerciseId);
-    
-    // Optimistically update local state
-    setCompletedExercises((prev) => {
-      const newSet = new Set(prev);
-      if (isCompleted) {
-        newSet.delete(exerciseId);
-      } else {
-        newSet.add(exerciseId);
-      }
-      return newSet;
-    });
+    const newCompletedState = !isCompleted;
 
     // Update in database
     try {
-      await updateExerciseCompletion(userId, actualWorkoutId, exerciseId, !isCompleted);
+      await updateExerciseCompletion(userId, actualWorkoutId, exerciseId, newCompletedState);
     } catch (error: any) {
-      // Revert optimistic update on error
-      setCompletedExercises((prev) => {
-        const newSet = new Set(prev);
-        if (isCompleted) {
-          newSet.add(exerciseId);
-        } else {
-          newSet.delete(exerciseId);
-        }
-        return newSet;
-      });
       Alert.alert(
         'Error',
         error.message || 'Failed to update exercise. Please try again.',
@@ -536,7 +538,6 @@ export default function WorkoutVideosScreen() {
         initialPage={startIndex}
         orientation="vertical"
         onPageSelected={handlePageSelected}
-        // Preload adjacent pages for better performance
         offscreenPageLimit={1}
       >
         {exercisesWithVideos.map((exercise, index) => (
@@ -544,6 +545,7 @@ export default function WorkoutVideosScreen() {
             <VideoItem
               exercise={exercise}
               index={index}
+              playerRef={playerRef}
               isCompleted={completedExercises.has(exercise.id)}
               isActive={index === currentIndex}
               onToggleComplete={() => toggleExerciseComplete(exercise.id)}
@@ -762,6 +764,30 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>, insets: ReturnTy
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 5,
+  },
+  castButton: {
+    position: 'absolute',
+    top: insets.top,
+    right: 16,
+    zIndex: 10,
+  },
+  castButtonInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  castButtonActive: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    borderWidth: 2,
+    borderColor: colors.primary,
   },
   playPauseButton: {
     position: 'absolute',

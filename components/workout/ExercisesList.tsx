@@ -36,10 +36,11 @@ export function ExercisesList({
           const isCompleted = completedExercises.has(item.id);
           return (
             <ExerciseVideo
-              exercise={{ ...item, workoutId } as any}
+              exercise={item}
               index={index}
               isCompleted={isCompleted}
               onToggle={onToggleExercise}
+              workoutId={workoutId}
             />
           );
         }}
