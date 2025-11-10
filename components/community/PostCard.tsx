@@ -4,12 +4,12 @@ import { useRouter } from 'expo-router';
 import { Heart, MessageCircle, Clock } from 'lucide-react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { SocialPost } from '@/types';
+import dayjs from 'dayjs';
 
 interface PostCardProps {
   post: SocialPost;
   isCurrentUser: boolean;
   onLike: () => void;
-  formatTimeAgo: (timestamp: string) => string;
   getPostIcon: (post: SocialPost) => string;
 }
 
@@ -17,7 +17,6 @@ export function PostCard({
   post, 
   isCurrentUser, 
   onLike, 
-  formatTimeAgo, 
   getPostIcon,
 }: PostCardProps) {
   const colors = useThemeColor();
@@ -50,7 +49,7 @@ export function PostCard({
             <View style={styles.postMeta}>
               <Clock size={12} color={colors.textSecondary} />
               <Text style={styles.postTime}>
-                {formatTimeAgo(post.timestamp)}
+                {dayjs(post.timestamp).fromNow()}
               </Text>
             </View>
           </View>

@@ -636,3 +636,61 @@ export function useLeaderboard(limit: number = 10) {
   };
 }
 
+/**
+ * Get challenge-specific leaderboard - participants sorted by progress (points)
+ */
+export function useChallengeLeaderboard(challengeId: string) {
+  const { data, isLoading } = db.useQuery(
+    challengeId
+      ? {
+          challenges: {
+            $: {
+              where: { id: challengeId as any },
+            },
+            userProgress: {
+              user: {}, // Get user data via the link
+            },
+          },
+        }
+      : {}
+  );
+
+  const challenge = data?.challenges?.[0];
+  const progressEntries = challenge?.userProgress || [];
+
+  // Map progress entries to leaderboard entries with user data
+  const leaderboard = progressEntries
+    .map((progress: any) => {
+      const user = progress.user;
+      if (!user) return null;
+
+      return {
+        id: progress.id,
+        userId: progress.userId,
+        userName: user.name || 'Unknown',
+        avatar: user.avatar,
+        progress: progress.progress || 0,
+        completed: progress.completed || false,
+        joinedAt: progress.createdAt,
+      };
+    })
+    .filter((entry: any) => entry !== null)
+    .sort((a: any, b: any) => {
+      // Sort by progress (points) in descending order
+      // If progress is equal, sort by join date (earlier join = higher rank)
+      if (b.progress !== a.progress) {
+        return b.progress - a.progress;
+      }
+      return (a.joinedAt || 0) - (b.joinedAt || 0);
+    })
+    .map((entry: any, index: number) => ({
+      ...entry,
+      rank: index + 1,
+    }));
+
+  return {
+    leaderboard,
+    isLoading,
+  };
+}
+

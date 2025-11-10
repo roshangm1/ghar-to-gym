@@ -7,8 +7,10 @@ import {
   TrendingUp,
   Award,
   Clock,
+  Medal,
 } from 'lucide-react-native';
 import React, { useMemo } from 'react';
+import dayjs from 'dayjs';
 import {
   View,
   Text,
@@ -16,11 +18,13 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { useChallenges, useUserChallengeProgress, joinChallenge } from '@/lib/useChallenges';
+import { useNow } from '@/hooks/useNow';
+import { useChallenges, useUserChallengeProgress, joinChallenge, useChallengeLeaderboard } from '@/lib/useChallenges';
 import { useUserProfile } from '@/lib/useUserData';
-import { Challenge, WorkoutCategory } from '@/types';
+import { WorkoutCategory } from '@/types';
 
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,12 +36,23 @@ export default function ChallengeDetailScreen() {
     userId,
     id as string
   );
+  const { leaderboard, isLoading: leaderboardLoading } = useChallengeLeaderboard(id as string);
 
   const challenge = useMemo(() => {
     return challenges.find((c) => c.id === id);
   }, [challenges, id]);
 
-  if (isLoading || progressLoading) {
+  const now = useNow();
+
+  // Calculate days remaining dynamically using dayjs
+  const daysRemaining = useMemo(() => {
+    if (!challenge?.endDate) return 0;
+    const endDate = dayjs(challenge.endDate);
+    const diff = endDate.diff(now, 'day', true);
+    return Math.max(0, Math.ceil(diff));
+  }, [challenge?.endDate, now]);
+
+  if (isLoading || progressLoading || leaderboardLoading) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -66,9 +81,6 @@ export default function ChallengeDetailScreen() {
   const progress = userProgress?.progress || challenge.progress || 0;
   const progressPercentage = (progress / challenge.goal) * 100;
   const isCompleted = userProgress?.completed || false;
-  const daysRemaining = Math.ceil(
-    (new Date(challenge.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-  );
 
   const getMetricLabel = () => {
     switch (challenge.metricType) {
@@ -231,6 +243,75 @@ export default function ChallengeDetailScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Leaderboard Section */}
+          {leaderboard.length > 0 && (
+            <View style={styles.leaderboardCard}>
+              <View style={styles.leaderboardHeader}>
+                <Trophy size={24} color={colors.primary} />
+                <Text style={styles.leaderboardTitle}>Leaderboard</Text>
+              </View>
+              <View style={styles.leaderboardList}>
+                {leaderboard.map((entry) => {
+                  const isCurrentUser = entry.userId === userId;
+                  const getRankIcon = () => {
+                    if (entry.rank === 1) return <Trophy size={20} color="#FFD700" />;
+                    if (entry.rank === 2) return <Medal size={20} color="#C0C0C0" />;
+                    if (entry.rank === 3) return <Medal size={20} color="#CD7F32" />;
+                    return null;
+                  };
+                  
+                  return (
+                    <View
+                      key={entry.id}
+                      style={[
+                        styles.leaderboardItem,
+                        isCurrentUser && styles.leaderboardItemCurrent,
+                      ]}
+                    >
+                      <View style={styles.leaderboardRank}>
+                        {getRankIcon() || (
+                          <Text style={styles.leaderboardRankText}>{entry.rank}</Text>
+                        )}
+                      </View>
+                      {entry.avatar ? (
+                        <Image
+                          source={{ uri: entry.avatar }}
+                          style={styles.leaderboardAvatar}
+                        />
+                      ) : (
+                        <View style={styles.leaderboardAvatarPlaceholder}>
+                          <Text style={styles.leaderboardAvatarText}>
+                            {entry.userName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.leaderboardInfo}>
+                        <Text
+                          style={[
+                            styles.leaderboardName,
+                            isCurrentUser && styles.leaderboardNameCurrent,
+                          ]}
+                        >
+                          {entry.userName}
+                          {isCurrentUser && ' (You)'}
+                        </Text>
+                        <Text style={styles.leaderboardProgress}>
+                          {entry.progress} {getMetricLabel().toLowerCase()}
+                          {entry.completed && ' ✓'}
+                        </Text>
+                      </View>
+                      {entry.completed && (
+                        <View style={styles.completedBadgeSmall}>
+                          <Trophy size={16} color={colors.success} />
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* Join Button */}
           {!userProgress && userId && (
@@ -476,6 +557,93 @@ const createStyles = (colors: ReturnType<typeof useThemeColor>) => StyleSheet.cr
     fontSize: 17,
     fontWeight: '700' as const,
     color: colors.background,
+  },
+  leaderboardCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  leaderboardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  leaderboardTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: colors.text,
+  },
+  leaderboardList: {
+    gap: 12,
+  },
+  leaderboardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  leaderboardItemCurrent: {
+    backgroundColor: colors.primary + '15',
+    borderWidth: 2,
+    borderColor: colors.primary + '40',
+  },
+  leaderboardRank: {
+    width: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leaderboardRankText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: colors.textSecondary,
+  },
+  leaderboardAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  leaderboardAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leaderboardAvatarText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: colors.primary,
+  },
+  leaderboardInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  leaderboardName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: colors.text,
+  },
+  leaderboardNameCurrent: {
+    color: colors.primary,
+  },
+  leaderboardProgress: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  completedBadgeSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.success + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

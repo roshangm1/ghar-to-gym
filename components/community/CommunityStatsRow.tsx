@@ -1,32 +1,36 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Trophy, Target, TrendingUp } from 'lucide-react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { UserProfile } from '@/types';
+import { useLeaderboard } from '@/lib/useChallenges';
+import { Target, TrendingUp, Trophy } from 'lucide-react-native';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 interface CommunityStatsRowProps {
-  profile: UserProfile;
+  userId: string;
+  points: number;
+  streak: number;
 }
 
-export function CommunityStatsRow({ profile }: CommunityStatsRowProps) {
+export function CommunityStatsRow({ userId, points, streak }: CommunityStatsRowProps) {
   const colors = useThemeColor();
   const styles = createStyles(colors);
+  const { leaderboard } = useLeaderboard(100);
+  const userRank = leaderboard.find((user) => user.userId === userId)?.rank;
 
   return (
     <View style={styles.statsRow}>
       <View style={styles.miniStatCard}>
         <TrendingUp size={18} color={colors.primary} />
-        <Text style={styles.miniStatValue}>{profile.points}</Text>
+        <Text style={styles.miniStatValue}>{points}</Text>
         <Text style={styles.miniStatLabel}>Points</Text>
       </View>
       <View style={styles.miniStatCard}>
         <Trophy size={18} color={colors.accent} />
-        <Text style={styles.miniStatValue}>{profile.workoutStreak}</Text>
+        <Text style={styles.miniStatValue}>{streak}</Text>
         <Text style={styles.miniStatLabel}>Streak</Text>
       </View>
       <View style={styles.miniStatCard}>
         <Target size={18} color={colors.secondary} />
-        <Text style={styles.miniStatValue}>#{8}</Text>
+        <Text style={styles.miniStatValue}>#{userRank}</Text>
         <Text style={styles.miniStatLabel}>Rank</Text>
       </View>
     </View>

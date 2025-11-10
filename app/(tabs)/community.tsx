@@ -17,6 +17,30 @@ import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, StyleSheet,
 import dayjs from 'dayjs';
 
 const POSTS_PER_PAGE = 10;
+interface CommunityHeaderSectionProps {
+  userId: string;
+  points: number;
+  streak: number;
+}
+
+
+export function CommunityHeaderSection({ userId, points, streak }: CommunityHeaderSectionProps) {
+  const colors = useThemeColor();
+  const styles = createStyles(colors);
+
+  return (
+    <>
+      <CommunityHeader />
+      <CommunityStatsRow userId={userId} points={points} streak={streak} />
+      <ChallengesSection />
+      <View style={styles.activityFeedHeader}>
+        <Users size={20} color={colors.primary} />
+        <Text style={styles.activityFeedTitle}>Activity Feed</Text>
+      </View>
+    </>
+  );
+}
+
 
 export default function CommunityScreen() {
   const { profile } = useApp();
@@ -97,10 +121,7 @@ export default function CommunityScreen() {
     }
   };
 
-  const formatTimeAgo = (timestamp: string) => {
-    return dayjs(timestamp).fromNow();
-  };
-
+  
   const getPostIcon = (post: SocialPost) => {
     if (post.data?.icon) return post.data.icon;
     switch (post.type) {
@@ -125,7 +146,6 @@ export default function CommunityScreen() {
           post={post}
           isCurrentUser={isCurrentUser}
           onLike={() => handleLike(post)}
-          formatTimeAgo={formatTimeAgo}
           getPostIcon={getPostIcon}
         />
       </View>
@@ -133,15 +153,11 @@ export default function CommunityScreen() {
   }
 
   const renderHeader = () => (
-    <>
-      <CommunityHeader />
-      <CommunityStatsRow profile={profile} />
-      <ChallengesSection />
-      <View style={styles.activityFeedHeader}>
-        <Users size={20} color={colors.primary} />
-        <Text style={styles.activityFeedTitle}>Activity Feed</Text>
-      </View>
-    </>
+    <CommunityHeaderSection 
+      userId={profile.id} 
+      points={profile.points} 
+      streak={profile.workoutStreak} 
+  />
   );
 
   const renderEmpty = () => {
